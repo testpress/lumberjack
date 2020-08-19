@@ -15,7 +15,9 @@ class Job(TimeStampedModel, TimeFramedModel):
     job_template = models.ForeignKey("presets.JobTemplate", null=True, on_delete=models.SET_NULL)
     job_settings = models.JSONField("Job Settings", null=True)
     job_id = models.UUIDField("Job Id", primary_key=True, default=uuid.uuid4, editable=False, db_index=True)
-    background_task_id = models.CharField("Background Task Id", null=True, max_length=1024)
+    background_task_id = models.UUIDField(
+        "Background Task Id", default=uuid.uuid4, db_index=True, null=True, max_length=255
+    )
     progress = models.PositiveSmallIntegerField("Progress", default=0)
     status = StatusField()
     input_url = models.CharField("Input URL", max_length=1024)
@@ -27,5 +29,6 @@ class Output(AbstractOutputPreset):
     job = models.ForeignKey(Job, null=True, on_delete=models.SET_NULL)
     status = StatusField()
     progress = models.PositiveSmallIntegerField("Progress", default=0)
-    background_task_id = models.CharField("Background Task Id", null=True, max_length=1024)
-
+    background_task_id = models.UUIDField(
+        "Background Task Id", default=uuid.uuid4, db_index=True, null=True, max_length=255
+    )

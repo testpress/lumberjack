@@ -12,11 +12,10 @@ class JobTemplate(TimeStampedModel):
     slug = models.SlugField("Slug", max_length=255, unique=True, blank=True, db_index=True)
     settings = models.JSONField("Settings", null=True)
     destination = models.CharField("Destination", max_length=1024)
-    file_name = models.CharField("Directory Name", max_length=255)
+    file_name = models.CharField("File Name", max_length=255)
     segment_length = models.PositiveSmallIntegerField("HLS Segments length", blank=True, null=True)
     format = models.CharField("Output Format", max_length=255)
-    encryption_method = models.CharField("Encryption Method", max_length=100, null=True)
-    encryption_key = models.CharField("Encrytpion Key", max_length=1024, null=True)
+    encryption_key = models.CharField("Encryption Key", max_length=1024, null=True)
     key_url = models.CharField("Encryption Key URL", max_length=1024, null=True)
 
     class Meta:
