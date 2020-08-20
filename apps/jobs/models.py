@@ -10,7 +10,15 @@ from model_utils import Choices
 
 
 class Job(TimeStampedModel, TimeFramedModel):
-    STATUS = Choices('not_started', 'queued', 'started', 'processing', 'completed', 'cancelled', 'error')
+    STATUS = Choices(
+        ('not_started', "Not Started"),
+        ('queued', "Queued"),
+        ('started', "Started"),
+        ('processing', "Processing"),
+        ('completed', "Completed"),
+        ('cancelled', "Cancelled"),
+        ('error', "Error")
+    )
 
     id = models.UUIDField("Job Id", primary_key=True, default=uuid.uuid4, editable=False, db_index=True)
     template = models.ForeignKey("presets.JobTemplate", null=True, on_delete=models.SET_NULL)
@@ -27,7 +35,7 @@ class Job(TimeStampedModel, TimeFramedModel):
         ordering = ("-created",)
 
     def __str__(self):
-        return self.job_id
+        return f"JOB {self.id} - {self.get_status_display()}"
 
 
 class Output(AbstractOutputPreset):
