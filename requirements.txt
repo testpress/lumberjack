@@ -1,8 +1,4 @@
-asgiref==3.2.10
+mock==4.0.2
 Django==3.1
-packaging==20.4
-pyparsing==2.4.7
-pytz==2020.1
-six==1.15.0
-sqlparse==0.3.1
-django-model-utils==4.0.0
+django_model_utils==4.0.0
+ipython==7.17.0
