@@ -2,6 +2,7 @@ import logging
 import subprocess
 import shlex
 import threading
+import re
 
 from .utils import get_time
 
@@ -32,7 +33,18 @@ class FFMpegProcess(object):
     def __exit__(self, exc_type, exc_val, exc_tb):
         self.process.kill()
 
-    def _monitor(self):
+    def store_transcoded_file(self, exclude_m3u8=False):
+        exclude_files = []
+        if exclude_m3u8:
+            exclude_files = ["*.m3u8"]
+
+        self.output.store(exclude_files=exclude_files)
+
+    def has_output_files(self, stdout):
+        regex_pattern = re.compile("(Opening .* for writing)")
+        return regex_pattern.search(stdout)
+
+    def process_stdout(self):
         duration = 1
         time = 0
         log = []
@@ -45,6 +57,9 @@ class FFMpegProcess(object):
             if line != '':
                 log += [line]
 
+            if self.has_output_files(line):
+                self.store_transcoded_file(True)
+
             if callable(self.monitor):
                 if type(line) == str:
                     duration = get_time('Duration: ', line, duration)
@@ -54,7 +69,7 @@ class FFMpegProcess(object):
         FFMpegProcess.out = log
 
     def start_monitoring(self):
-        self.thread = threading.Thread(target=self._monitor)
+        self.thread = threading.Thread(target=self.process_stdout)
         self.thread.start()
 
     def stop_thread(self):
