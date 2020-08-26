@@ -134,3 +134,6 @@ USE_TZ = True
 # https://docs.djangoproject.com/en/3.1/howto/static-files/
 
 STATIC_URL = '/static/'
+
+
+TRANSCODED_VIDEOS_PATH = "/Users/karthik/Downloads/transcoded_videos"
