@@ -10,7 +10,7 @@ class InputOptionsFactory(object):
     def get(input_url):
         if parse_uri(input_url).scheme == "s3":
             return S3InputOptions()
-        return InputOptions()
+        return FileStorageInputOptions()
 
 
 class AbstractInputOptions(ABC):
@@ -24,10 +24,10 @@ class AbstractInputOptions(ABC):
         return self.options
 
 
-class InputOptions(AbstractInputOptions):
+class FileStorageInputOptions(AbstractInputOptions):
     @property
     def options(self):
-        return {}
+        return {"buffer_size": 1024}
 
 
 class S3InputOptions(AbstractInputOptions):
@@ -38,4 +38,4 @@ class S3InputOptions(AbstractInputOptions):
             aws_secret_access_key=os.environ["AWS_SECRET_ACCESS_KEY"],
             region_name="ap-southeast-1"
         )
-        return {"session": session}
+        return {"session": session, "buffer_size": 1024}

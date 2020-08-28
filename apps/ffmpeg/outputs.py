@@ -1,6 +1,7 @@
 import abc
 import os
 import re
+import shutil
 
 from smart_open import parse_uri
 import boto3
@@ -12,12 +13,12 @@ class OutputFactory:
     def create(url, **options):
         if parse_uri(url).scheme == "s3":
             return S3(url)
-        return FileStorage()
+        return FileStorage(url)
 
 
 class Storage(abc.ABC):
     @abc.abstractmethod
-    def store(self, directory, **options):
+    def save(self, directory, **options):
         pass
 
 
@@ -32,7 +33,7 @@ class S3(Storage):
         self.destination_url = destination_url
         self.is_uploading = False
 
-    def store(self, directory, exclude_m3u8=False):
+    def save(self, source_directory, exclude_m3u8=False):
         exclude_files = []
         if exclude_m3u8:
             exclude_files = [".*\.m3u8"]
@@ -41,17 +42,18 @@ class S3(Storage):
             return
 
         self.is_uploading = True
-        for root, dirs, files in os.walk(directory):
+        self.upload_directory(source_directory, exclude_files)
+        self.is_uploading = False
+
+    def upload_directory(self, source_directory, files_to_exclude):
+        for root, dirs, files in os.walk(source_directory):
             for filename in files:
-                if self.should_skip_upload(filename, exclude_files):
+                if self.should_skip_upload(filename, files_to_exclude):
                     continue
 
-                local_path = os.path.join(root, filename)
-                relative_path = os.path.relpath(local_path, directory)
-                s3_path = parse_uri(os.path.join(self.destination_url, relative_path))
-                self.upload_file(local_path, s3_path)
-                os.remove(local_path)
-        self.is_uploading = False
+                absolute_path = os.path.join(root, filename)
+                self.upload_file(absolute_path, source_directory)
+                os.remove(absolute_path)
 
     def should_skip_upload(self, filename, files_to_exclude=[]):
         if filename.endswith(".tmp"):
@@ -62,13 +64,25 @@ class S3(Storage):
             return True
         return False
 
-    def upload_file(self, file_path, s3_path):
+    def upload_file(self, absolute_file_path, source_directory):
+        relative_path = os.path.relpath(absolute_file_path, source_directory)
+        s3_path = parse_uri(os.path.join(self.destination_url, relative_path))
+
         try:
             self.client.head_object(Bucket=s3_path.bucket_id, Key=s3_path.key_id)
         except ClientError:
-            self.client.upload_file(file_path, s3_path.bucket_id, s3_path.key_id)
+            self.client.upload_file(absolute_file_path, s3_path.bucket_id, s3_path.key_id)
 
 
 class FileStorage(Storage):
-    def store(self, *args, **options):
-        pass
+    def __init__(self, destination_directory):
+        self.destination_directory = destination_directory
+        self.is_being_moved = False
+
+    def save(self, source_directory, exclude_m3u8=False):
+        if self.is_being_moved:
+            return
+
+        self.is_being_moved = True
+        shutil.move(source_directory, self.destination_directory)
+        self.is_being_moved = False

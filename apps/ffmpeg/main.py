@@ -32,8 +32,8 @@ class Manager:
         self.output_observer = OutputObserver(self.options.get("output")["url"], self.options.get("output")["local_path"])
 
     def register_observers(self):
-        self.observable.register(FFmpegEvent.OUTPUT_EVENT, self.output_observer)
-        self.observable.register(FFmpegEvent.PROGRESS_EVENT, self.progress_observer)
+        self.observable.register(self.output_observer)
+        self.observable.register(self.progress_observer)
 
 
 class Executor:

@@ -1,4 +1,5 @@
 import threading
+import abc
 import re
 
 from apps.ffmpeg.outputs import OutputFactory
@@ -24,6 +25,11 @@ class Observer:
     def notify(self, *args, **kwargs):
         pass
 
+    @property
+    @abc.abstractmethod
+    def event_type(self):
+        pass
+
 
 class ProgressObserver(Observer):
     def __init__(self, progress_callback: callable):
@@ -33,34 +39,44 @@ class ProgressObserver(Observer):
         if self.callback:
             self.callback(progress)
 
+    @property
+    def event_type(self):
+        return FFmpegEvent.PROGRESS_EVENT
+
 
 class OutputObserver(Observer):
     def __init__(self, url, directory):
         self.output = OutputFactory.create(url)
         self.directory = directory
 
-    def notify(self, percentage, **kwargs):
-        exclude_m3u8 = False
-        if percentage < 100:
-            exclude_m3u8 = True
-        self.output.store(self.directory, exclude_m3u8)
+    def notify(self, is_transcode_completed):
+        exclude_m3u8 = True
+
+        if is_transcode_completed:
+            exclude_m3u8 = False
+
+        self.output.save(self.directory, exclude_m3u8)
+
+    @property
+    def event_type(self):
+        return FFmpegEvent.OUTPUT_EVENT
 
 
 class Observable:
     def __init__(self):
         self._observers = dict()
 
-    def register(self, event_type, observer: Observer):
-        if event_type in self._observers:
-            observers = self._observers[event_type]
+    def register(self, observer: Observer):
+        if observer.event_type in self._observers:
+            observers = self._observers[observer.event_type]
             observers.append(observer)
         else:
             observers = {observer}
-        self._observers[event_type] = observers
+        self._observers[observer.event_type] = observers
 
-    def unregister(self, event_type, observer: Observer):
-        if event_type in self._observers:
-            self._observers[event_type].remove(observer)
+    def unregister(self, observer: Observer):
+        if observer.event_type in self._observers:
+            self._observers[observer.event_type].remove(observer)
 
     def notify(self, event):
         if event.type in self._observers:
@@ -107,7 +123,8 @@ class Monitor:
         return FFmpegEvent(FFmpegEvent.PROGRESS_EVENT, percentage)
 
     def create_output_event(self, percentage):
-        return FFmpegEvent(FFmpegEvent.OUTPUT_EVENT, percentage)
+        is_transcode_completed = percentage == 100
+        return FFmpegEvent(FFmpegEvent.OUTPUT_EVENT, is_transcode_completed)
 
     def get_percentage(self, log):
         self.duration = self.parse_time('Duration: ', log, self.duration)

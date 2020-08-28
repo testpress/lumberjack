@@ -2,7 +2,7 @@ from django.test import SimpleTestCase
 
 from boto3 import session
 
-from apps.ffmpeg.input_options import InputOptionsFactory, S3InputOptions, InputOptions
+from apps.ffmpeg.input_options import InputOptionsFactory, S3InputOptions, FileStorageInputOptions
 
 
 class TestInputOptionsFactory(SimpleTestCase):
@@ -14,14 +14,14 @@ class TestInputOptionsFactory(SimpleTestCase):
     def test_should_return_input_options_instance_for_other_url(self):
         input_options = InputOptionsFactory.get("file://a/b/c")
 
-        self.assertTrue(isinstance(input_options, InputOptions))
+        self.assertTrue(isinstance(input_options, FileStorageInputOptions))
 
 
 class TestInputOptions(SimpleTestCase):
     def test_input_options_should_return_empty_dict(self):
-        input_options = InputOptions()
+        input_options = FileStorageInputOptions()
 
-        self.assertDictEqual(input_options.__dict__, {})
+        self.assertDictEqual(input_options.__dict__, {"buffer_size": 1024})
 
 
 class TestS3InputOptions(SimpleTestCase):

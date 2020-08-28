@@ -73,7 +73,7 @@ class TestHLSKeyInfoFile(SimpleTestCase):
 
     def test_key_should_be_stored_in_file(self):
         hls_key_info_file = HLSKeyInfoFile(self.key, self.key_url, self.local_path+"/test_key")
-        hls_key_info_file.store_key()
+        hls_key_info_file.save_key()
 
         with open(self.local_path+"/test_key/enc.key", "rb") as key:
             self.assertEqual(self.key, binascii.hexlify(key.read()).decode("utf8"))

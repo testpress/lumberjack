@@ -100,9 +100,11 @@ class HLSOptions(MediaOptions):
 
         if self.options.get("encryption"):
             encryption_data = self.options.get("encryption")
-            args["hls_key_info_file"] = HLSKeyInfoFile(
+            hls_key_info_file = HLSKeyInfoFile(
                 encryption_data["key"], encryption_data["url"], self.key_folder_path
             )
+            hls_key_info_file.create()
+            args["hls_key_info_file"] = hls_key_info_file.path
         return args
 
 
@@ -114,18 +116,21 @@ class HLSKeyInfoFile:
         self.key_path = "{}/enc.key".format(local_path)
         self.key_info_file_path = "{}/enc.keyinfo".format(local_path)
 
-    def __str__(self):
-        self.store_key_locally()
+    def create(self):
+        self.save_key()
+        self.save_key_info()
+
+    @property
+    def path(self):
         return self.key_info_file_path
 
-    def store_key_locally(self):
-        self.store_key()
-        self.store_key_info()
+    def __str__(self):
+        return self.key_info_file_path
 
-    def store_key(self):
+    def save_key(self):
         with open(self.key_path, "wb") as key:
             key.write(binascii.unhexlify(self.key))
 
-    def store_key_info(self):
+    def save_key_info(self):
         with open(self.key_info_file_path, 'w') as key_info_file:
             key_info_file.write("\n".join([self.key_url, self.key_path]))

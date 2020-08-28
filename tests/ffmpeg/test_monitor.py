@@ -5,27 +5,32 @@ from .utils import ProcessMock
 
 
 class ProgressObserverMock(Observer):
-    def __init__(self):
+    def __init__(self, event_type):
         self.called = False
+        self.type = event_type
 
     def notify(self, *args, **kwargs):
         self.called = True
 
+    @property
+    def event_type(self):
+        return self.type
+
 
 class TestMonitor(SimpleTestCase):
     def test_observer_should_get_called_for_correct_event(self):
-        self.observer = ProgressObserverMock()
+        self.observer = ProgressObserverMock(FFmpegEvent.PROGRESS_EVENT)
         self.observable = Observable()
-        self.observable.register(FFmpegEvent.PROGRESS_EVENT, self.observer)
+        self.observable.register(self.observer)
         monitor = Monitor(ProcessMock(), self.observable)
         monitor.run()
 
         self.assertTrue(self.observer.called)
 
     def test_observer_should_not_get_called_for_incorrect_event(self):
-        self.observer = ProgressObserverMock()
+        self.observer = ProgressObserverMock(FFmpegEvent.OUTPUT_EVENT)
         self.observable = Observable()
-        self.observable.register(FFmpegEvent.OUTPUT_EVENT, self.observer)
+        self.observable.register(self.observer)
         monitor = Monitor(ProcessMock(), self.observable)
         monitor.run()
 
