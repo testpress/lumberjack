@@ -41,11 +41,10 @@ class S3(Storage):
         if self.is_uploading:
             return
 
-        self.is_uploading = True
         self.upload_directory(source_directory, exclude_files)
-        self.is_uploading = False
 
     def upload_directory(self, source_directory, files_to_exclude):
+        self.is_uploading = True
         for root, dirs, files in os.walk(source_directory):
             for filename in files:
                 if self.should_skip_upload(filename, files_to_exclude):
@@ -54,6 +53,7 @@ class S3(Storage):
                 absolute_path = os.path.join(root, filename)
                 self.upload_file(absolute_path, source_directory)
                 os.remove(absolute_path)
+        self.is_uploading = False
 
     def should_skip_upload(self, filename, files_to_exclude=[]):
         if filename.endswith(".tmp"):
