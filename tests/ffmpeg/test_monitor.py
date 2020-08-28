@@ -1,4 +1,4 @@
-from django.test import TestCase
+from django.test import SimpleTestCase
 
 from apps.ffmpeg.monitor import Monitor, Observable, FFmpegEvent, Observer, ProgressObserver
 from .utils import ProcessMock
@@ -12,7 +12,7 @@ class ProgressObserverMock(Observer):
         self.called = True
 
 
-class TestMonitor(TestCase):
+class TestMonitor(SimpleTestCase):
     def test_observer_should_get_called_for_correct_event(self):
         self.observer = ProgressObserverMock()
         self.observable = Observable()
@@ -32,7 +32,7 @@ class TestMonitor(TestCase):
         self.assertFalse(self.observer.called)
 
 
-class TestProgressObserver(TestCase):
+class TestProgressObserver(SimpleTestCase):
     def setUp(self) -> None:
         self.progress = 0
 

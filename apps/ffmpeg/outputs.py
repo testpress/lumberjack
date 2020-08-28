@@ -30,7 +30,6 @@ class S3(Storage):
         self.client = session.client("s3")
         self.destination_url = destination_url
         self.is_uploading = False
-        print("Destination url :", destination_url)
 
     def store(self, directory, exclude_m3u8=False):
         if self.is_uploading:

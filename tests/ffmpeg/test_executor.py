@@ -1,19 +1,18 @@
-from mock import mock_open, patch
+import shutil
 import subprocess
 from os import path
-import shutil
 
-from django.test import TestCase, override_settings
+from django.test import SimpleTestCase, override_settings
 
-from apps.ffmpeg.main import Executor, Manager
+from apps.ffmpeg.main import Executor
 
 
-class TestExecutor(TestCase):
+class TestExecutor(SimpleTestCase):
     @property
     def data(self):
         return {
             "id": "1232",
-            "input": "tests/ffmpeg/data/sample2.mp4",
+            "input": "tests/ffmpeg/data/video.mp4",
             "segmentLength": 1,
             "destination": "tests/ffmpeg/output/",
             "file_name": "video.m3u8",
@@ -53,6 +52,15 @@ class TestExecutor(TestCase):
         self.assertTrue(path.exists('tests/ffmpeg/data/test/video.m3u8'))
         self.assertTrue(path.exists('tests/ffmpeg/data/test/1232/360p/video_0.ts'))
 
-    def tearDown(self) -> None:
+    @override_settings(TRANSCODED_VIDEOS_PATH='tests/ffmpeg/data/test')
+    def test_exception_should_be_raised_for_corrupt_file(self):
+        data = self.data
+        data["input"] = "tests/ffmpeg/data/corrupt_video.mp4"
+        executor = Executor(self.data)
+
+        self.assertRaises(Exception, executor.run())
+
+    @classmethod
+    def tearDownClass(cls):
         shutil.rmtree('tests/ffmpeg/data/test')
         shutil.rmtree('tests/ffmpeg/data/1232')

@@ -1,12 +1,12 @@
 import binascii
 import shutil
 
-from django.test import TestCase, override_settings
+from django.test import SimpleTestCase, override_settings
 
 from apps.ffmpeg.command_generator import CommandGenerator, HLSKeyInfoFile
 
 
-class TestCommandGenerator(TestCase):
+class TestCommandGenerator(SimpleTestCase):
     @property
     def data(self):
         return {
@@ -61,7 +61,7 @@ class TestCommandGenerator(TestCase):
         self.assertEqual(output_path, self.command_generator.output_path)
 
 
-class TestHLSKeyInfoFile(TestCase):
+class TestHLSKeyInfoFile(SimpleTestCase):
     def setUp(self) -> None:
         self.key = "abcde12345"
         self.key_url = "https://google.com"

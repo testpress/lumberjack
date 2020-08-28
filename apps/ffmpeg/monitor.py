@@ -90,7 +90,6 @@ class Monitor:
         while True:
             events = []
             line = self.process.stdout.readline().strip()
-            print(line)
             if line == '' and self.process.poll() is not None:
                 return False
 
