@@ -7,4 +7,3 @@ def mkdir(dirname: str) -> None:
         os.makedirs(dirname)
     except OSError as exc:
         logging.info(exc)
-        pass
