@@ -39,7 +39,7 @@ class TestExecutor(SimpleTestCase):
         }
 
     @override_settings(TRANSCODED_VIDEOS_PATH='tests/ffmpeg/data')
-    def test_process_should_return_ffmpeg_subprocess(self):
+    def test_process_should_return_subprocess(self):
         executor = Executor(self.data)
 
         self.assertTrue(isinstance(executor.process, subprocess.Popen))

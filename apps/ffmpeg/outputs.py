@@ -7,6 +7,8 @@ from smart_open import parse_uri
 import boto3
 from botocore.exceptions import ClientError
 
+from django.conf import settings
+
 
 class OutputFactory:
     @staticmethod
@@ -27,9 +29,9 @@ class S3(Storage):
 
     def __init__(self, destination_url):
         session = boto3.Session(
-            aws_access_key_id=os.environ["AWS_ACCESS_KEY_ID"],
-            aws_secret_access_key=os.environ["AWS_SECRET_ACCESS_KEY"],
-            region_name="ap-southeast-1"
+            aws_access_key_id=settings.AWS_ACCESS_KEY_ID,
+            aws_secret_access_key=settings.AWS_SECRET_ACCESS_KEY,
+            region_name=settings.AWS_S3_REGION_CODE
         )
         self.client = session.client("s3")
         self.destination_url = destination_url
