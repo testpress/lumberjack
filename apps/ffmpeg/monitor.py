@@ -113,7 +113,7 @@ class Monitor:
             events.append(self.create_progress_event(percentage))
 
             if self.has_output_files(log):
-                events.append(self.create_output_event(percentage))
+                events.append(self.create_output_event(percentage == 100))
             return events
 
     def is_stdout_finished(self, log):
@@ -122,8 +122,7 @@ class Monitor:
     def create_progress_event(self, percentage):
         return FFmpegEvent(FFmpegEvent.PROGRESS_EVENT, percentage)
 
-    def create_output_event(self, percentage):
-        is_transcode_completed = percentage == 100
+    def create_output_event(self, is_transcode_completed):
         return FFmpegEvent(FFmpegEvent.OUTPUT_EVENT, is_transcode_completed)
 
     def get_percentage(self, log):
