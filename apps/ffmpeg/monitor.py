@@ -50,12 +50,7 @@ class OutputObserver(Observer):
         self.directory = directory
 
     def notify(self, is_transcode_completed):
-        exclude_m3u8 = True
-
-        if is_transcode_completed:
-            exclude_m3u8 = False
-
-        self.output.save(self.directory, exclude_m3u8)
+        self.output.save(self.directory, is_transcode_completed)
 
     @property
     def event_type(self):

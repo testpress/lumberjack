@@ -23,6 +23,8 @@ class Storage(abc.ABC):
 
 
 class S3(Storage):
+    INCOMPLETE_MANIFEST_FILES = ".*\.m3u8"
+
     def __init__(self, destination_url):
         session = boto3.Session(
             aws_access_key_id=os.environ["AWS_ACCESS_KEY_ID"],
@@ -33,10 +35,10 @@ class S3(Storage):
         self.destination_url = destination_url
         self.is_uploading = False
 
-    def save(self, source_directory, exclude_m3u8=False):
+    def save(self, source_directory, is_transcode_completed=False):
         exclude_files = []
-        if exclude_m3u8:
-            exclude_files = [".*\.m3u8"]
+        if is_transcode_completed:
+            exclude_files = [self.INCOMPLETE_MANIFEST_FILES]
 
         if self.is_uploading:
             return
