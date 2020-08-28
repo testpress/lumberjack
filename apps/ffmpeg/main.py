@@ -56,9 +56,7 @@ class Executor:
 
     def run(self):
         self.read_input()
-        self.process.wait()
-
-        # self.stop_process()
+        self.stop_process()
 
     def start_process(self):
         self._process = subprocess.Popen(shlex.split(self.command), **self.options)
