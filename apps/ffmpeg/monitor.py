@@ -79,40 +79,47 @@ class Monitor:
 
     def run(self):
         while True:
-            events = self._parse_log()
+            events = self.parse_log()
             if events:
                 for event in events:
                     self.observable.notify(event)
             else:
                 break
 
-    def _parse_log(self):
+    def parse_log(self):
         while True:
             events = []
-            line = self.process.stdout.readline().strip()
-            if line == '' and self.process.poll() is not None:
+            log = self.process.stdout.readline().strip()
+            if self.is_stdout_finished(log):
                 return False
 
-            percentage = self.get_percentage(line)
-            event = FFmpegEvent(FFmpegEvent.PROGRESS_EVENT, percentage)
-            events.append(event)
+            percentage = self.get_percentage(log)
+            events.append(self.create_progress_event(percentage))
 
-            if self.has_output_files(line):
-                event = FFmpegEvent(FFmpegEvent.OUTPUT_EVENT, percentage)
-                events.append(event)
+            if self.has_output_files(log):
+                events.append(self.create_output_event(percentage))
             return events
 
+    def is_stdout_finished(self, log):
+        return log == '' and self.process.poll() is not None
+
+    def create_progress_event(self, percentage):
+        return FFmpegEvent(FFmpegEvent.PROGRESS_EVENT, percentage)
+
+    def create_output_event(self, percentage):
+        return FFmpegEvent(FFmpegEvent.OUTPUT_EVENT, percentage)
+
     def get_percentage(self, log):
-        self.duration = self._parse_time('Duration: ', log, self.duration)
-        self.time = self._parse_time('time=', log, self.time)
+        self.duration = self.parse_time('Duration: ', log, self.duration)
+        self.time = self.parse_time('time=', log, self.time)
         return round(self.time/self.duration * 100)
 
     def has_output_files(self, log):
         regex_pattern = re.compile("(Opening .* for writing)")
         return regex_pattern.search(log)
 
-    def _parse_time(self, key, string, default):
-        time = re.search('(?<=' + key + ')\w+:\w+:\w+', string)
+    def parse_time(self, regex, string, default):
+        time = re.search('(?<=' + regex + ')\w+:\w+:\w+', string)
         return convert_to_sec(time.group(0)) if time else default
 
     def start(self):
