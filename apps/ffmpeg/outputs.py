@@ -1,5 +1,6 @@
 import abc
 import os
+import re
 
 from smart_open import parse_uri
 import boto3
@@ -32,25 +33,40 @@ class S3(Storage):
         self.is_uploading = False
 
     def store(self, directory, exclude_m3u8=False):
+        exclude_files = []
+        if exclude_m3u8:
+            exclude_files = [".*\.m3u8"]
+
         if self.is_uploading:
             return
 
         self.is_uploading = True
         for root, dirs, files in os.walk(directory):
             for filename in files:
-                if filename.endswith(".tmp") or exclude_m3u8 and filename.endswith(".m3u8"):
+                if self.skip_upload(filename, exclude_files):
                     continue
+
                 local_path = os.path.join(root, filename)
                 relative_path = os.path.relpath(local_path, directory)
                 s3_path = parse_uri(os.path.join(self.destination_url, relative_path))
-
-                try:
-                    self.client.head_object(Bucket=s3_path.bucket_id, Key=s3_path.key_id)
-                    os.remove(local_path)
-                except ClientError:
-                    self.client.upload_file(local_path, s3_path.bucket_id, s3_path.key_id)
-                    os.remove(local_path)
+                self.upload_file(local_path, s3_path)
+                os.remove(local_path)
         self.is_uploading = False
+
+    def skip_upload(self, filename, files_to_exclude=[]):
+        if filename.endswith(".tmp"):
+            return True
+
+        regex = '(?:% s)' % '|'.join(files_to_exclude)
+        if files_to_exclude and re.match(regex, filename):
+            return True
+        return False
+
+    def upload_file(self, file_path, s3_path):
+        try:
+            self.client.head_object(Bucket=s3_path.bucket_id, Key=s3_path.key_id)
+        except ClientError:
+            self.client.upload_file(file_path, s3_path.bucket_id, s3_path.key_id)
 
 
 class FileStorage(Storage):
