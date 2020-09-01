@@ -14,8 +14,6 @@ class JobTemplate(TimeStampedModel):
     destination = models.CharField("Destination", max_length=1024)
     segment_length = models.PositiveSmallIntegerField("HLS Segments length", blank=True, null=True)
     format = models.CharField("Output Format", max_length=255)
-    encryption_key = models.CharField("Encryption Key", max_length=1024, null=True)
-    key_url = models.CharField("Encryption Key URL", max_length=1024, null=True)
 
     class Meta:
         ordering = ("-created",)

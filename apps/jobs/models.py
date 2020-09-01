@@ -31,6 +31,8 @@ class Job(TimeStampedModel, TimeFramedModel):
     input_url = models.CharField("Input URL", max_length=1024)
     output_url = models.CharField("Output URL", max_length=1024)
     webhook_url = models.URLField("Webhook URL")
+    encryption_key = models.CharField("Encryption Key", max_length=1024, null=True)
+    key_url = models.CharField("Encryption Key URL", max_length=1024, null=True)
 
     class Meta:
         ordering = ("-created",)
