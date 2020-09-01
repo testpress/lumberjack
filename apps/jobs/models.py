@@ -52,7 +52,7 @@ class Output(AbstractOutputPreset):
         ("error", "Error"),
     )
 
-    job = models.ForeignKey(Job, null=True, on_delete=models.SET_NULL)
+    job = models.ForeignKey(Job, null=True, on_delete=models.SET_NULL, related_name="outputs")
     status = StatusField()
     progress = models.PositiveSmallIntegerField("Progress", default=0)
     background_task_id = models.UUIDField(
@@ -60,3 +60,7 @@ class Output(AbstractOutputPreset):
     )
     settings = models.JSONField("Settings", null=True)
     error_message = models.TextField("Error Message", null=True, blank=True)
+
+    @property
+    def resolution(self):
+        return f"{self.width}x{self.height}"
