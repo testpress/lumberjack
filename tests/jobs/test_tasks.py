@@ -54,7 +54,7 @@ class TestManifestGenerator(Mixin, TestCase):
             {"bandwidth": self.output.video_bitrate, "resolution": self.output.resolution, "name": "720p/video.m3u8"}
         ]
 
-    def test_media_details(self):
+    def test_media_details_should_return_list_of_media_detail(self):
         media_details = self.manifest_generator.get_media_details()
 
         self.assertDictEqual(self.media_details[0], media_details[0])
@@ -69,9 +69,8 @@ class TestManifestGenerator(Mixin, TestCase):
         self.assertEqual(expected_manifest_content, manifest_content)
 
     @override_settings(TRANSCODED_VIDEOS_PATH="tests/ffmpeg/data")
-    def test_sample(self):
+    def test_write_to_file_should_write_content_in_manifest_file(self):
         manifest_path = f"tests/ffmpeg/data/{self.job.id}"
-        print(manifest_path)
         mkdir(manifest_path)
         self.manifest_generator.write_to_file("hello")
 
