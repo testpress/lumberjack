@@ -88,3 +88,7 @@ class Output(AbstractOutput):
     background_task_id = models.UUIDField("Background Task Id", db_index=True, null=True, max_length=255)
     settings = models.JSONField("Settings", null=True)
     error_message = models.TextField("Error Message", null=True, blank=True)
+
+    @property
+    def resolution(self):
+        return f"{self.width}x{self.height}"
