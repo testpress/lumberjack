@@ -42,6 +42,15 @@ class TestVideoTranscoder(Mixin, TestCase):
 
         self.assertTrue(mock_ffmpeg_manager.called)
 
+    def test_update_progress_should_upadte_progress_in_output_and_job(self):
+        video_transcoder = VideoTranscoderRunnable(job_id=self.output.job.id, output_id=self.output.id)
+        video_transcoder.output = self.output
+        video_transcoder.job = self.output.job
+        video_transcoder.update_progress(20)
+
+        self.assertEqual(self.output.progress, 20)
+        self.assertEqual(self.job.progress, 20)
+
 
 class TestManifestGenerator(Mixin, TestCase):
     def setUp(self) -> None:

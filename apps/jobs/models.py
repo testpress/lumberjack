@@ -43,6 +43,11 @@ class Job(TimeStampedModel, TimeFramedModel):
     def __str__(self):
         return f"JOB {self.id} - {self.get_status_display()}"
 
+    def update_progress(self):
+        progress_dict = Output.objects.filter(job_id=self.id).aggregate(models.Avg("progress"))
+        self.progress = progress_dict["progress__avg"]
+        self.save()
+
 
 class AbstractOutput(TimeStampedModel):
     VIDEO_ENCODERS = (("h264", "H244"), ("hevc", "HEVC"))
