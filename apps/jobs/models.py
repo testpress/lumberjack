@@ -7,9 +7,10 @@ from apps.presets.models import AbstractOutputPreset
 from model_utils.models import TimeStampedModel, TimeFramedModel
 from model_utils.fields import StatusField
 from model_utils import Choices
+from dirtyfields.dirtyfields import DirtyFieldsMixin
 
 
-class Job(TimeStampedModel, TimeFramedModel):
+class Job(TimeStampedModel, TimeFramedModel, DirtyFieldsMixin):
     STATUS = Choices(
         ("not_started", "Not Started"),
         ("queued", "Queued"),
@@ -36,6 +37,30 @@ class Job(TimeStampedModel, TimeFramedModel):
 
     class Meta:
         ordering = ("-created",)
+
+    @property
+    def job_info(self):
+        return {
+            "id": self.id,
+            "status": self.get_status_display(),
+            "settings": self.settings,
+            "input_url": self.input_url,
+            "output_url": self.output_url,
+        }
+
+    def is_status_changed(self) -> bool:
+        if self.is_dirty():
+            changed_fields = self.get_dirty_fields()
+            if changed_fields.get("status"):
+                return True
+        return False
+
+    def save(self, *args, **kwargs):
+        from .tasks import PostDataToWebhookTask
+
+        if self.is_status_changed() and self.webhook_url:
+            PostDataToWebhookTask.apply_async(args=(self.job_info, self.webhook_url))
+        super().save(*args, **kwargs)
 
     def __str__(self):
         return f"JOB {self.id} - {self.get_status_display()}"

@@ -1,10 +1,12 @@
 import json
 import mock
 import shutil
+import responses
+from requests.exceptions import ConnectionError
 
 from django.test import TestCase, override_settings
 
-from apps.jobs.tasks import VideoTranscoderRunnable, ManifestGeneratorRunnable
+from apps.jobs.tasks import VideoTranscoderRunnable, ManifestGeneratorRunnable, PostDataToWebhookTask
 from apps.ffmpeg.utils import mkdir
 from .mixins import Mixin
 
@@ -87,3 +89,29 @@ class TestManifestGenerator(Mixin, TestCase):
             self.assertEqual("hello", manifest.read().decode("utf8"))
 
         shutil.rmtree(manifest_path)
+
+
+class TestPostDataToWebhook(TestCase):
+    @property
+    def data(self):
+        return {"job_id": 1234, "status": "Completed"}
+
+    @property
+    def url(self):
+        return "http://domain.com/webhook/"
+
+    @responses.activate
+    def test_data_should_be_posted_to_webhook(self):
+        responses.add(responses.POST, self.url, json=self.data, status=200)
+        response = PostDataToWebhookTask.run(data=self.data, url=self.url)
+
+        self.assertEqual(self.data, json.loads(response.content))
+        self.assertEqual(200, response.status_code)
+
+    @responses.activate
+    @mock.patch("apps.jobs.tasks.PostDataToWebhookTask.retry")
+    def test_error(self, retry_mock):
+        responses.add(responses.POST, self.url, body=ConnectionError("Gateway Error"))
+        PostDataToWebhookTask.run(data=self.data, url=self.url)
+
+        retry_mock.assert_called()

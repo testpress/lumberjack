@@ -1,6 +1,9 @@
 import json
 
 from celery import Task
+import requests
+
+from django.core.serializers.json import DjangoJSONEncoder
 from django.conf import settings
 from django.shortcuts import get_object_or_404
 
@@ -116,3 +119,17 @@ class ManifestGenerator(CeleryTask):
 
 
 ManifestGenerator = app.register_task(ManifestGenerator())
+
+
+class PostDataToWebhookTask(CeleryTask):
+    def run(self, data, url):
+        data_json = json.dumps(data, cls=DjangoJSONEncoder)
+
+        try:
+            response = requests.post(url, data=data_json, headers={"Content-Type": "application/json"})
+            return response
+        except requests.ConnectionError:
+            self.retry()
+
+
+PostDataToWebhookTask = app.register_task(PostDataToWebhookTask())
