@@ -59,7 +59,7 @@ class TestManifestGenerator(Mixin, TestCase):
 
         self.assertDictEqual(self.media_details[0], media_details[0])
 
-    def test_manifest_content_should_return_manifest_(self):
+    def test_manifest_content_should_return_hls_tags(self):
         manifest_content = self.manifest_generator.get_manifest_content(self.media_details)
 
         expected_manifest_content = (
