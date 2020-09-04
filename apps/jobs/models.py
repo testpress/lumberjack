@@ -10,14 +10,20 @@ from model_utils import Choices
 
 
 class Job(TimeStampedModel, TimeFramedModel):
+    NOT_STARTED = "not_started"
+    QUEUED = "queued"
+    PROCESSING = "processing"
+    COMPLETED = "completed"
+    CANCELLED = "cancelled"
+    ERROR = "error"
+
     STATUS = Choices(
-        ("not_started", "Not Started"),
-        ("queued", "Queued"),
-        ("started", "Started"),
-        ("processing", "Processing"),
-        ("completed", "Completed"),
-        ("cancelled", "Cancelled"),
-        ("error", "Error"),
+        (NOT_STARTED, "Not Started"),
+        (QUEUED, "Queued"),
+        (PROCESSING, "Processing"),
+        (COMPLETED, "Completed"),
+        (CANCELLED, "Cancelled"),
+        (ERROR, "Error"),
     )
 
     id = models.UUIDField("Job Id", primary_key=True, default=uuid.uuid4, editable=False, db_index=True)
@@ -42,14 +48,20 @@ class Job(TimeStampedModel, TimeFramedModel):
 
 
 class Output(AbstractOutputPreset):
+    NOT_STARTED = "not_started"
+    QUEUED = "queued"
+    PROCESSING = "processing"
+    COMPLETED = "completed"
+    CANCELLED = "cancelled"
+    ERROR = "error"
+
     STATUS = Choices(
-        ("not_started", "Not Started"),
-        ("queued", "Queued"),
-        ("started", "Started"),
-        ("processing", "Processing"),
-        ("completed", "Completed"),
-        ("cancelled", "Cancelled"),
-        ("error", "Error"),
+        (NOT_STARTED, "Not Started"),
+        (QUEUED, "Queued"),
+        (PROCESSING, "Processing"),
+        (COMPLETED, "Completed"),
+        (CANCELLED, "Cancelled"),
+        (ERROR, "Error"),
     )
 
     job = models.ForeignKey(Job, null=True, on_delete=models.SET_NULL)
