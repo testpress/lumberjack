@@ -48,17 +48,34 @@ class CeleryTask(Task):
 
 
 class VideoTranscoderRunnable(CeleryRunnable):
+    def do_run(self, *args, **kwargs):
+        self.job = Job.objects.get(id=self.job_id)
+        self.output = Output.objects.get(id=self.output_id)
+        self.update_status(Output.PROCESSING)
+
+        try:
+            self.start_transcoding()
+            self.update_status(Output.COMPLETED)
+        except Exception as error:
+            self.store_exception(error)
+            self.update_status(Output.ERROR)
+
+    def update_status(self, status):
+        self.output.status = status
+        self.output.save()
+
+    def start_transcoding(self):
+        ffmpeg_manager = Manager(json.loads(self.output.settings), self.update_progress)
+        ffmpeg_manager.run()
+
     def update_progress(self, percentage):
         if (percentage % 5) == 0 and self.output.progress != percentage:
             self.output.progress = percentage
             self.output.save()
 
-    def do_run(self, *args, **kwargs):
-        self.job = Job.objects.get(id=self.job_id)
-        self.output = Output.objects.get(id=self.output_id)
-
-        ffmpeg_manager = Manager(json.loads(self.output.settings), self.update_progress)
-        ffmpeg_manager.run()
+    def store_exception(self, error):
+        self.output.error_message = error
+        self.output.save()
 
 
 class VideoTranscoder(CeleryTask):
@@ -69,6 +86,14 @@ VideoTranscoder = app.register_task(VideoTranscoder())
 
 
 class ManifestGeneratorRunnable(CeleryRunnable):
+    def do_run(self, *args, **kwargs):
+        self.job = get_object_or_404(Job, id=self.job_id)
+        media_details = self.get_media_details()
+        content = self.generate_manifest_content(media_details)
+        self.write_to_file(content)
+        self.upload()
+        self.update_job_status()
+
     def manifest_header(self):
         return "#EXTM3U\n#EXT-X-VERSION:3\n"
 
@@ -88,7 +113,7 @@ class ManifestGeneratorRunnable(CeleryRunnable):
             media_details.append(media_detail)
         return media_details
 
-    def get_manifest_content(self, media_details):
+    def generate_manifest_content(self, media_details):
         content = self.manifest_header()
         for media_detail in media_details:
             content += (
@@ -106,14 +131,6 @@ class ManifestGeneratorRunnable(CeleryRunnable):
     def update_job_status(self):
         self.job.status = Job.COMPLETED
         self.job.save()
-
-    def do_run(self, *args, **kwargs):
-        self.job = get_object_or_404(Job, id=self.job_id)
-        media_details = self.get_media_details()
-        content = self.get_manifest_content(media_details)
-        self.write_to_file(content)
-        self.upload()
-        self.update_job_status()
 
 
 class ManifestGenerator(CeleryTask):

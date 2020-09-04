@@ -6,6 +6,7 @@ from django.test import TestCase, override_settings
 
 from apps.jobs.tasks import VideoTranscoderRunnable, ManifestGeneratorRunnable
 from apps.ffmpeg.utils import mkdir
+from apps.jobs.models import Job
 from .mixins import Mixin
 
 
@@ -68,8 +69,8 @@ class TestManifestGenerator(Mixin, TestCase):
 
         self.assertDictEqual(self.media_details[0], media_details[0])
 
-    def test_manifest_content_should_return_hls_tags(self):
-        manifest_content = self.manifest_generator.get_manifest_content(self.media_details)
+    def test_generate_manifest_content_should_return_hls_content(self):
+        manifest_content = self.manifest_generator.generate_manifest_content(self.media_details)
 
         expected_manifest_content = (
             "#EXTM3U\n#EXT-X-VERSION:3\n#EXT-X-STREAM-INF:BANDWIDTH=1500000,"
@@ -87,3 +88,8 @@ class TestManifestGenerator(Mixin, TestCase):
             self.assertEqual("hello", manifest.read().decode("utf8"))
 
         shutil.rmtree(manifest_path)
+
+    def update_job_status_should_update_job_as_completed(self):
+        self.manifest_generator.update_job_status()
+
+        self.assertEqual(Job.COMPLETED, self.job.status)
