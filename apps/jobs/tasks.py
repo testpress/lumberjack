@@ -103,12 +103,17 @@ class ManifestGeneratorRunnable(CeleryRunnable):
         master_m3u8.write(content)
         master_m3u8.close()
 
+    def update_job_status(self):
+        self.job.status = Job.COMPLETED
+        self.job.save()
+
     def do_run(self, *args, **kwargs):
         self.job = get_object_or_404(Job, id=self.job_id)
         media_details = self.get_media_details()
         content = self.get_manifest_content(media_details)
         self.write_to_file(content)
         self.upload()
+        self.update_job_status()
 
 
 class ManifestGenerator(CeleryTask):
