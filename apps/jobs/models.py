@@ -2,12 +2,14 @@ import uuid
 
 from django.db import models
 
+from .model_mixins import JobNotifierMixin
+
 from model_utils.models import TimeStampedModel, TimeFramedModel
 from model_utils.fields import StatusField
 from model_utils import Choices
 
 
-class Job(TimeStampedModel, TimeFramedModel):
+class Job(TimeStampedModel, TimeFramedModel, JobNotifierMixin):
     NOT_STARTED = "not_started"
     QUEUED = "queued"
     PROCESSING = "processing"
