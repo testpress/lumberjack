@@ -57,8 +57,11 @@ class VideoTranscoderRunnable(CeleryRunnable):
         ffmpeg_manager = Manager(self.output.settings, self.update_progress)
         ffmpeg_manager.run()
 
+    def should_update_progress(self, percentage):
+        return (percentage % 5) == 0 and self.output.progress != percentage
+
     def update_progress(self, percentage):
-        if (percentage % 5) == 0 and self.output.progress != percentage:
+        if self.should_update_progress(percentage):
             self.output.progress = percentage
             self.output.save()
             self.job.update_progress()
