@@ -1,4 +1,3 @@
-
 import binascii
 
 from django.conf import settings
@@ -18,15 +17,15 @@ class CommandGenerator(object):
     def to_args(self, **kwargs: dict):
         args = []
         for key, value in kwargs.items():
-            args.append('-{}'.format(key))
+            args.append("-{}".format(key))
             if value is not None:
-                args.append('{}'.format(value))
+                args.append("{}".format(value))
 
         return args
 
     @property
     def ffmpeg_binary(self):
-        return 'ffmpeg -hide_banner'
+        return "ffmpeg -hide_banner"
 
     @property
     def input_argument(self):
@@ -62,7 +61,7 @@ class MediaOptions(object):
         options = {
             "c:v": self.video.get("codec", self.DEFAULT_VIDEO_CODEC),
             "preset": self.video.get("preset", self.DEFAULT_PRESET),
-            "s": "{}x{}".format(self.video.get("width"), self.video.get("height"))
+            "s": "{}x{}".format(self.video.get("width"), self.video.get("height")),
         }
 
         if self.video.get("bitrate"):
@@ -71,9 +70,7 @@ class MediaOptions(object):
         return options
 
     def audio_options(self):
-        return {
-            "c:a": self.audio.get("codec", self.DEFAULT_AUDIO_CODEC)
-        }
+        return {"c:a": self.audio.get("codec", self.DEFAULT_AUDIO_CODEC)}
 
     @property
     def all(self) -> dict:
@@ -93,20 +90,20 @@ class HLSOptions(MediaOptions):
     @property
     def all(self):
         args = super().all
-        args.update({
-            "format": "hls",
-            "hls_list_size": 0,
-            "hls_time": self.options.get("segment_length", self.DEFAULT_SEGMENT_LENGTH),
-            "hls_segment_filename": "{}/{}/{}/video_%d.ts".format(
-                settings.TRANSCODED_VIDEOS_PATH, self.options.get("id"), self.output_options.get("name")
-            ),
-        })
+        args.update(
+            {
+                "format": "hls",
+                "hls_list_size": 0,
+                "hls_time": self.options.get("segment_length", self.DEFAULT_SEGMENT_LENGTH),
+                "hls_segment_filename": "{}/{}/{}/video_%d.ts".format(
+                    settings.TRANSCODED_VIDEOS_PATH, self.options.get("id"), self.output_options.get("name")
+                ),
+            }
+        )
 
         if self.options.get("encryption"):
             encryption_data = self.options.get("encryption")
-            hls_key_info_file = HLSKeyInfoFile(
-                encryption_data["key"], encryption_data["url"], self.key_folder_path
-            )
+            hls_key_info_file = HLSKeyInfoFile(encryption_data["key"], encryption_data["url"], self.key_folder_path)
             hls_key_info_file.create()
             args["hls_key_info_file"] = hls_key_info_file.path
         return args
@@ -136,5 +133,5 @@ class HLSKeyInfoFile:
             key.write(binascii.unhexlify(self.key))
 
     def save_key_info(self):
-        with open(self.key_info_file_path, 'w') as key_info_file:
+        with open(self.key_info_file_path, "w") as key_info_file:
             key_info_file.write("\n".join([self.key_url, self.key_path]))

@@ -1,5 +1,4 @@
 from abc import ABC, abstractmethod
-import os
 
 from smart_open import parse_uri
 import boto3
@@ -38,6 +37,6 @@ class S3InputOptions(AbstractInputOptions):
         session = boto3.Session(
             aws_access_key_id=settings.AWS_ACCESS_KEY_ID,
             aws_secret_access_key=settings.AWS_SECRET_ACCESS_KEY,
-            region_name=settings.AWS_S3_REGION_CODE
+            region_name=settings.AWS_S3_REGION_CODE,
         )
         return {"session": session, "buffer_size": 1024}

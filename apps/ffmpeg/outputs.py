@@ -25,13 +25,13 @@ class Storage(abc.ABC):
 
 
 class S3(Storage):
-    INCOMPLETE_MANIFEST_FILES = ".*\.m3u8"
+    INCOMPLETE_MANIFEST_FILES = r".*\.m3u8"
 
     def __init__(self, destination_url):
         session = boto3.Session(
             aws_access_key_id=settings.AWS_ACCESS_KEY_ID,
             aws_secret_access_key=settings.AWS_SECRET_ACCESS_KEY,
-            region_name=settings.AWS_S3_REGION_CODE
+            region_name=settings.AWS_S3_REGION_CODE,
         )
         self.client = session.client("s3")
         self.destination_url = destination_url
@@ -63,7 +63,7 @@ class S3(Storage):
         if filename.endswith(".tmp"):
             return True
 
-        regex = '(?:% s)' % '|'.join(files_to_exclude)
+        regex = "(?:% s)" % "|".join(files_to_exclude)
         if files_to_exclude and re.match(regex, filename):
             return True
         return False

@@ -112,7 +112,7 @@ class Monitor:
             return events
 
     def is_stdout_finished(self, log):
-        return log == '' and self.process.poll() is not None
+        return log == "" and self.process.poll() is not None
 
     def create_progress_event(self, percentage):
         return FFmpegEvent(FFmpegEvent.PROGRESS_EVENT, percentage)
@@ -121,16 +121,16 @@ class Monitor:
         return FFmpegEvent(FFmpegEvent.OUTPUT_EVENT, is_transcode_completed)
 
     def get_percentage(self, log):
-        self.duration = self.parse_time('Duration: ', log, self.duration)
-        self.time = self.parse_time('time=', log, self.time)
-        return round(self.time/self.duration * 100)
+        self.duration = self.parse_time("Duration: ", log, self.duration)
+        self.time = self.parse_time("time=", log, self.time)
+        return round(self.time / self.duration * 100)
 
     def has_output_files(self, log):
         regex_pattern = re.compile("(Opening .* for writing)")
         return regex_pattern.search(log)
 
     def parse_time(self, regex, string, default):
-        time = re.search('(?<=' + regex + ')\w+:\w+:\w+', string)
+        time = re.search("(?<=" + regex + ")\w+:\w+:\w+", string)
         return convert_to_sec(time.group(0)) if time else default
 
     def start(self):

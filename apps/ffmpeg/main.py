@@ -8,10 +8,7 @@ from django.conf import settings
 from apps.ffmpeg.command_generator import CommandGenerator
 from apps.ffmpeg.input_options import InputOptionsFactory
 from apps.ffmpeg.utils import mkdir
-from apps.ffmpeg.monitor import (
-    Observable, Monitor,
-    ProgressObserver, OutputObserver, FFmpegEvent
-)
+from apps.ffmpeg.monitor import Observable, Monitor, ProgressObserver, OutputObserver
 
 
 class Manager:
@@ -19,7 +16,9 @@ class Manager:
         self.monitor = monitor
         self.options = options
         self.command = CommandGenerator(options).generate()
-        self.local_path = "{}/{}/{}".format(settings.TRANSCODED_VIDEOS_PATH, options.get("id"), options.get("output").get("name"))
+        self.local_path = "{}/{}/{}".format(
+            settings.TRANSCODED_VIDEOS_PATH, options.get("id"), options.get("output").get("name")
+        )
 
     def run(self):
         self.observable = Observable()
@@ -51,17 +50,17 @@ class Executor:
     @property
     def options(self):
         return {
-            'stdin': subprocess.PIPE,
-            'stdout': subprocess.PIPE,
-            'stderr': subprocess.STDOUT,
-            'universal_newlines': True
+            "stdin": subprocess.PIPE,
+            "stdout": subprocess.PIPE,
+            "stderr": subprocess.STDOUT,
+            "universal_newlines": True,
         }
 
     def run(self):
         self.read_input()
         self.process.wait()
         if self.process.returncode != 0:
-            error = '\n'.join(self.process.stdout.readlines())
+            error = "\n".join(self.process.stdout.readlines())
             raise Exception(error)
         self.stop_process()
 
@@ -70,7 +69,7 @@ class Executor:
 
     def read_input(self):
         options = InputOptionsFactory.get(self.input)
-        for content in open(self.input, 'rb', transport_params=options.__dict__):
+        for content in open(self.input, "rb", transport_params=options.__dict__):
             self.process.stdin.buffer.write(content)
         self.process.stdin.close()
 
