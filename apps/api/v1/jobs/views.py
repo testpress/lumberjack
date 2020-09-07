@@ -38,7 +38,7 @@ def job_info_view(request, job_id):
 
 
 @api_view(["POST"])
-def cancel_job(request):
+def cancel_job_view(request):
     job_id = request.data["job_id"]
     job = get_object_or_404(Job, id=job_id)
     transcode_manager = VideoTranscodeManager(job)

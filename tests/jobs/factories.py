@@ -19,3 +19,11 @@ class OutputFactory(DjangoModelFactory):
     width = 1280
     height = 720
     name = "720p"
+
+
+class JobTemplateFactory(DjangoModelFactory):
+    class Meta:
+        model = "presets.JobTemplate"
+
+    segment_length = 10
+    name = "Job Template"
