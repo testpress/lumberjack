@@ -44,7 +44,7 @@ class VideoTranscoderRunnable(CeleryRunnable):
         self.initialize()
 
         if self.is_job_status_not_updated():
-            self.set_job_status_as_processing()
+            self.update_job_status_as_processing()
             self.job.notify_webhook()
         self.update_output_status(Output.PROCESSING)
 
@@ -62,7 +62,7 @@ class VideoTranscoderRunnable(CeleryRunnable):
     def is_job_status_not_updated(self):
         return self.job.status != Job.PROCESSING
 
-    def set_job_status_as_processing(self):
+    def update_job_status_as_processing(self):
         self.job.status = Job.PROCESSING
         self.job.save()
 
