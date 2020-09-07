@@ -39,18 +39,21 @@ class TestVideoTranscoder(Mixin, TestCase):
     def setUp(self) -> None:
         self.output.settings = json.dumps(self.output_settings)
         self.output.save()
+        self.prepare_video_transcoder()
+
+    def prepare_video_transcoder(self):
+        self.video_transcoder = VideoTranscoderRunnable(job_id=self.output.job.id, output_id=self.output.id)
+        self.video_transcoder.output = self.output
+        self.video_transcoder.job = self.output.job
 
     @mock.patch("apps.jobs.runnables.Manager")
-    def test_ffmanager_should_run_on_running_video_transcoder_task(self, mock_ffmpeg_manager):
-        VideoTranscoderRunnable(job_id=self.output.job.id, output_id=self.output.id).do_run()
+    def test_runnable_should_run_ffmpeg_manager(self, mock_ffmpeg_manager):
+        self.video_transcoder.do_run()
 
         self.assertTrue(mock_ffmpeg_manager.called)
 
-    def test_update_progress_should_upadte_progress_in_output_and_job(self):
-        video_transcoder = VideoTranscoderRunnable(job_id=self.output.job.id, output_id=self.output.id)
-        video_transcoder.output = self.output
-        video_transcoder.job = self.output.job
-        video_transcoder.update_progress(20)
+    def test_update_progress_should_update_progress_of_output_and_job(self):
+        self.video_transcoder.update_progress(20)
 
         self.assertEqual(self.output.progress, 20)
         self.assertEqual(self.job.progress, 20)

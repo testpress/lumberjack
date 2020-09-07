@@ -50,6 +50,16 @@ class Job(TimeStampedModel, TimeFramedModel, JobNotifierMixin):
         self.progress = progress_dict["progress__avg"]
         self.save()
 
+    @property
+    def job_info(self):
+        return {
+            "id": self.id,
+            "status": self.get_status_display(),
+            "settings": self.settings,
+            "input_url": self.input_url,
+            "output_url": self.output_url,
+        }
+
 
 class AbstractOutput(TimeStampedModel):
     VIDEO_ENCODERS = (("h264", "H244"), ("hevc", "HEVC"))
