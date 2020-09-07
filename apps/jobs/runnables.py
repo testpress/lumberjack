@@ -40,16 +40,27 @@ class VideoTranscoderRunnable(CeleryRunnable):
     def do_run(self, *args, **kwargs):
         self.job = Job.objects.get(id=self.job_id)
         self.output = Output.objects.get(id=self.output_id)
-        self.update_status(Output.PROCESSING)
+
+        if self.is_job_status_not_updated():
+            self.update_job_status()
+        self.update_output_status(Output.PROCESSING)
 
         try:
             self.start_transcoding()
-            self.update_status(Output.COMPLETED)
+            self.update_output_status(Output.COMPLETED)
         except Exception as error:
             self.store_exception(error)
-            self.update_status(Output.ERROR)
+            self.update_output_status(Output.ERROR)
 
-    def update_status(self, status):
+    def is_job_status_not_updated(self):
+        return self.job.status != Job.PROCESSING
+
+    def update_job_status(self):
+        self.job.status = Job.PROCESSING
+        self.job.save()
+        self.job.notify_webhook()
+
+    def update_output_status(self, status):
         self.output.status = status
         self.output.save()
 
