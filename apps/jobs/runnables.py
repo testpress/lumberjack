@@ -1,8 +1,11 @@
-from django.conf import settings
+import io
+
+from smart_open import open
+
 from django.shortcuts import get_object_or_404
 
 from apps.ffmpeg.main import Manager
-from apps.ffmpeg.outputs import OutputFactory
+from apps.ffmpeg.input_options import InputOptionsFactory
 from apps.jobs.models import Job, Output
 
 
@@ -38,27 +41,30 @@ class CeleryRunnableException(Exception):
 
 class VideoTranscoderRunnable(CeleryRunnable):
     def do_run(self, *args, **kwargs):
-        self.job = Job.objects.get(id=self.job_id)
-        self.output = Output.objects.get(id=self.output_id)
+        self.initialize()
 
         if self.is_job_status_not_updated():
-            self.update_job_status()
+            self.set_job_status_as_processing()
+            self.job.notify_webhook()
         self.update_output_status(Output.PROCESSING)
 
         try:
             self.start_transcoding()
             self.update_output_status(Output.COMPLETED)
         except Exception as error:
-            self.store_exception(error)
+            self.save_exception(error)
             self.update_output_status(Output.ERROR)
+
+    def initialize(self):
+        self.job = Job.objects.get(id=self.job_id)
+        self.output = Output.objects.get(id=self.output_id)
 
     def is_job_status_not_updated(self):
         return self.job.status != Job.PROCESSING
 
-    def update_job_status(self):
+    def set_job_status_as_processing(self):
         self.job.status = Job.PROCESSING
         self.job.save()
-        self.job.notify_webhook()
 
     def update_output_status(self, status):
         self.output.status = status
@@ -68,36 +74,40 @@ class VideoTranscoderRunnable(CeleryRunnable):
         ffmpeg_manager = Manager(self.output.settings, self.update_progress)
         ffmpeg_manager.run()
 
-    def should_update_progress(self, percentage):
+    def is_multiple_of_five(self, percentage):
         return (percentage % 5) == 0 and self.output.progress != percentage
 
     def update_progress(self, percentage):
-        if self.should_update_progress(percentage):
+        if self.is_multiple_of_five(percentage):
             self.output.progress = percentage
             self.output.save()
             self.job.update_progress()
 
-    def store_exception(self, error):
+    def save_exception(self, error):
         self.output.error_message = error
         self.output.save()
 
 
 class ManifestGeneratorRunnable(CeleryRunnable):
     def do_run(self, *args, **kwargs):
-        self.job = get_object_or_404(Job, id=self.job_id)
-        media_details = self.get_media_details()
-        content = self.generate_manifest_content(media_details)
-        self.write_to_file(content)
+        self.initialize()
+        self.generate_manifest_content()
         self.upload()
-        self.update_job_status()
+        self.complete_job()
+        self.job.notify_webhook()
+
+    def initialize(self):
+        self.job = get_object_or_404(Job, id=self.job_id)
+        self.manifest_content = None
 
     def manifest_header(self):
         return "#EXTM3U\n#EXT-X-VERSION:3\n"
 
     def upload(self):
-        path = f"{settings.TRANSCODED_VIDEOS_PATH}/{self.job.id}"
-        output_storage = OutputFactory.create(self.job.output_url)
-        output_storage.upload_directory(path)
+        file = io.BytesIO(self.manifest_content.encode()).read()
+        options = InputOptionsFactory.get(self.job.output_url)
+        with open(self.job.output_url, "wb", transport_params=options) as fout:
+            fout.write(file)
 
     def get_media_details(self):
         media_details = []
@@ -110,22 +120,16 @@ class ManifestGeneratorRunnable(CeleryRunnable):
             media_details.append(media_detail)
         return media_details
 
-    def generate_manifest_content(self, media_details):
+    def generate_manifest_content(self):
         content = self.manifest_header()
+        media_details = self.get_media_details()
         for media_detail in media_details:
             content += (
                 f"#EXT-X-STREAM-INF:BANDWIDTH={media_detail['bandwidth']},"
                 f"RESOLUTION={media_detail['resolution']}\n{media_detail['name']}.m3u8\n\n"
             )
-        return content
+        self.manifest_content = content
 
-    def write_to_file(self, content):
-        manifest_local_path = f"{settings.TRANSCODED_VIDEOS_PATH}/{self.job.id}/video.m3u8"
-        master_m3u8 = open(manifest_local_path, "wt")
-        master_m3u8.write(content)
-        master_m3u8.close()
-
-    def update_job_status(self):
+    def complete_job(self):
         self.job.status = Job.COMPLETED
         self.job.save()
-        self.job.notify_webhook()

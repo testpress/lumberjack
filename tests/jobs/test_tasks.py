@@ -1,14 +1,12 @@
 import json
 import mock
-import shutil
 import responses
 from requests.exceptions import ConnectionError
 
-from django.test import TestCase, override_settings
+from django.test import TestCase
 
 from apps.jobs.runnables import VideoTranscoderRunnable, ManifestGeneratorRunnable
 from apps.jobs.tasks import PostDataToWebhookTask
-from apps.ffmpeg.utils import mkdir
 from apps.jobs.models import Job
 from .mixins import Mixin
 
@@ -75,28 +73,17 @@ class TestManifestGenerator(Mixin, TestCase):
 
         self.assertDictEqual(self.media_details[0], media_details[0])
 
-    def test_generate_manifest_content_should_return_hls_content(self):
-        manifest_content = self.manifest_generator.generate_manifest_content(self.media_details)
+    def test_generate_manifest_content_should_generate_hls_content(self):
+        self.manifest_generator.generate_manifest_content()
 
         expected_manifest_content = (
             "#EXTM3U\n#EXT-X-VERSION:3\n#EXT-X-STREAM-INF:BANDWIDTH=1500000,"
             "RESOLUTION=1280x720\n720p/video.m3u8.m3u8\n\n"
         )
-        self.assertEqual(expected_manifest_content, manifest_content)
-
-    @override_settings(TRANSCODED_VIDEOS_PATH="tests/ffmpeg/data")
-    def test_write_to_file_should_write_content_in_manifest_file(self):
-        manifest_path = f"tests/ffmpeg/data/{self.job.id}"
-        mkdir(manifest_path)
-        self.manifest_generator.write_to_file("hello")
-
-        with open(manifest_path + "/video.m3u8", "rb") as manifest:
-            self.assertEqual("hello", manifest.read().decode("utf8"))
-
-        shutil.rmtree(manifest_path)
+        self.assertEqual(expected_manifest_content, self.manifest_generator.manifest_content)
 
     def update_job_status_should_update_job_as_completed(self):
-        self.manifest_generator.update_job_status()
+        self.manifest_generator.complete_job()
 
         self.assertEqual(Job.COMPLETED, self.job.status)
 
