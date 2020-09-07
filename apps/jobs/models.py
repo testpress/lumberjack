@@ -1,4 +1,5 @@
 import uuid
+import os
 
 from django.db import models
 
@@ -42,14 +43,6 @@ class Job(TimeStampedModel, TimeFramedModel, JobNotifierMixin):
     class Meta:
         ordering = ("-created",)
 
-    def __str__(self):
-        return f"JOB {self.id} - {self.get_status_display()}"
-
-    def update_progress(self):
-        progress_dict = self.outputs.aggregate(models.Avg("progress"))
-        self.progress = progress_dict["progress__avg"]
-        self.save()
-
     @property
     def job_info(self):
         return {
@@ -59,6 +52,31 @@ class Job(TimeStampedModel, TimeFramedModel, JobNotifierMixin):
             "input_url": self.input_url,
             "output_url": self.output_url,
         }
+
+    def __str__(self):
+        return f"JOB {self.id} - {self.get_status_display()}"
+
+    def update_progress(self):
+        progress_dict = self.outputs.aggregate(models.Avg("progress"))
+        self.progress = progress_dict["progress__avg"]
+        self.save()
+
+    def populate_settings(self):
+        if self.template is not None:
+            settings = self.template.settings
+            settings["template"] = self.template.id.hex
+        else:
+            settings = self.settings
+
+        destination, file_name = os.path.split(self.output_url)
+        settings.update(
+            {"id": self.id.hex, "destination": destination, "file_name": file_name, "input": self.input_url}
+        )
+
+        if self.encryption_key:
+            settings.update({"encryption": {"key": self.encryption_key, "url": self.key_url}})
+
+        self.settings = settings
 
 
 class AbstractOutput(TimeStampedModel):
