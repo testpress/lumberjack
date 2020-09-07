@@ -43,6 +43,14 @@ class Job(TimeStampedModel, TimeFramedModel, JobNotifierMixin):
     class Meta:
         ordering = ("-created",)
 
+    def __str__(self):
+        return f"JOB {self.id} - {self.get_status_display()}"
+
+    def update_progress(self):
+        progress_dict = self.outputs.aggregate(models.Avg("progress"))
+        self.progress = progress_dict["progress__avg"]
+        self.save()
+
     @property
     def job_info(self):
         return {
@@ -52,14 +60,6 @@ class Job(TimeStampedModel, TimeFramedModel, JobNotifierMixin):
             "input_url": self.input_url,
             "output_url": self.output_url,
         }
-
-    def __str__(self):
-        return f"JOB {self.id} - {self.get_status_display()}"
-
-    def update_progress(self):
-        progress_dict = self.outputs.aggregate(models.Avg("progress"))
-        self.progress = progress_dict["progress__avg"]
-        self.save()
 
     def populate_settings(self):
         if self.template is not None:
