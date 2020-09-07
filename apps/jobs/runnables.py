@@ -98,7 +98,7 @@ class ManifestGeneratorRunnable(CeleryRunnable):
 
     def initialize(self):
         self.job = get_object_or_404(Job, id=self.job_id)
-        self.manifest_content = None
+        self.manifest_content = ""
 
     def manifest_header(self):
         return "#EXTM3U\n#EXT-X-VERSION:3\n"
