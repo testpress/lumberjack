@@ -4,8 +4,8 @@ from exam import fixture
 
 
 class Mixin(object):
-    def create_job(self):
-        return JobFactory()
+    def create_job(self, **kwargs):
+        return JobFactory(**kwargs)
 
     @fixture
     def job(self):

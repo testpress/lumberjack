@@ -14,6 +14,7 @@ class VideoTranscodeManager:
         outputs = self.create_outputs()
         for output in outputs:
             tasks.append(VideoTranscoder.s(job_id=self.job.id, output_id=output.id))
+
         task = chord(tasks, ManifestGenerator.s(job_id=self.job.id)).apply_async()
         self.job.background_task_id = task.task_id
         self.job.save()
@@ -40,10 +41,13 @@ class VideoTranscodeManager:
                 job=self.job,
             )
             output.save()
-            outputs.append(outputs)
+            outputs.append(output)
         return outputs
 
     def stop(self):
+        if self.job.status == Job.COMPLETED:
+            return
+
         AsyncResult(self.job.background_task_id).revoke(terminate=True)
         self.job.status = Job.CANCELLED
         self.job.save()
