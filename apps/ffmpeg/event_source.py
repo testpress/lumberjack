@@ -80,12 +80,12 @@ class Observable:
                 observer.notify(event.data)
 
 
-class Monitor:
-    def __init__(self, process, observable):
+class EventSource(Observable):
+    def __init__(self, process):
+        super().__init__()
         self.duration = 1
         self.time = 0
         self.process = process
-        self.observable = observable
         self.thread = threading.Thread(target=self.run)
 
     def run(self):
@@ -93,7 +93,7 @@ class Monitor:
             events = self.parse_log()
             if events:
                 for event in events:
-                    self.observable.notify(event)
+                    self.notify(event)
             else:
                 break
 

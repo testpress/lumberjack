@@ -8,7 +8,7 @@ from django.conf import settings
 from apps.ffmpeg.command_generator import CommandGenerator
 from apps.ffmpeg.input_options import InputOptionsFactory
 from apps.ffmpeg.utils import mkdir
-from apps.ffmpeg.monitor import Observable, Monitor, ProgressObserver, OutputObserver
+from apps.ffmpeg.event_source import EventSource, ProgressObserver, OutputObserver
 
 
 class Manager:
@@ -21,12 +21,11 @@ class Manager:
         )
 
     def run(self):
-        self.observable = Observable()
         self.create_observers()
-        self.register_observers()
         self.executor = Executor(self.options)
-        self.monitor = Monitor(self.executor.process, self.observable)
-        self.monitor.start()
+        self.event_source = EventSource(self.executor.process)
+        self.register_observers()
+        self.event_source.start()
         self.executor.run()
 
     def create_observers(self):
@@ -34,8 +33,8 @@ class Manager:
         self.output_observer = OutputObserver(self.options.get("output")["url"], self.local_path)
 
     def register_observers(self):
-        self.observable.register(self.output_observer)
-        self.observable.register(self.progress_observer)
+        self.event_source.register(self.output_observer)
+        self.event_source.register(self.progress_observer)
 
 
 class Executor:
