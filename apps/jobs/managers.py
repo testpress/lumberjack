@@ -10,12 +10,9 @@ class VideoTranscodeManager:
         self.job = job
 
     def start(self):
-        tasks = []
         outputs = self.create_outputs()
-        for output in outputs:
-            tasks.append(VideoTranscoder.s(job_id=self.job.id, output_id=output.id))
-
-        task = chord(tasks, ManifestGenerator.s(job_id=self.job.id)).apply_async()
+        tasks = [VideoTranscoder.s(job_id=self.job.id, output_id=output.id) for output in outputs]
+        task = chord(tasks)(ManifestGenerator.s(job_id=self.job.id))
         self.job.background_task_id = task.task_id
         self.job.save()
 
@@ -24,8 +21,8 @@ class VideoTranscodeManager:
         outputs = []
         for output_settings in job_settings.get("outputs"):
             settings = self.job.settings
+            settings.pop("outputs", None)
             output_settings["url"] = settings["destination"] + "/" + output_settings["name"]
-            del settings["outputs"]
             settings["output"] = output_settings
 
             output = Output(
