@@ -28,36 +28,31 @@ class TestVideoTranscodeManager(TestCase, Mixin):
             "segmentLength": 10,
         }
 
+    def setUp(self) -> None:
+        self.job = self.create_job(settings=self.job_settings)
+        self.manager = VideoTranscodeManager(self.job)
+
     @mock.patch("apps.jobs.managers.chord")
     def test_start_should_start_background_task(self, mock_celery_chord):
-        mock_celery_chord.return_value.apply_async.return_value.task_id = 12
-        job = self.create_job(settings=self.job_settings)
-        manager = VideoTranscodeManager(job)
-        manager.start()
+        mock_celery_chord.return_value.return_value.task_id = 12
+        self.manager.start()
 
         mock_celery_chord.assert_called()
-        self.assertEqual(12, job.background_task_id)
+        self.assertEqual(12, self.job.background_task_id)
 
     @mock.patch("apps.jobs.managers.chord")
     def test_start_should_create_outputs_for_job(self, mock_celery_chord):
-        mock_celery_chord.return_value.apply_async.return_value.task_id = 12
-        job = self.create_job(settings=self.job_settings)
-        manager = VideoTranscodeManager(job)
-        manager.start()
+        mock_celery_chord.return_value.return_value.task_id = 12
+        self.manager.start()
 
-        self.assertEqual(1, job.outputs.count())
-        self.assertEqual(Output.objects.filter(job_id=job.id).first(), job.outputs.first())
+        self.assertEqual(1, self.job.outputs.count())
+        self.assertEqual(Output.objects.filter(job_id=self.job.id).first(), self.job.outputs.first())
 
     @mock.patch("apps.jobs.managers.AsyncResult")
     def test_stop_should_revoke_background_task(self, mock_async_result):
-        job = self.create_job(settings=self.job_settings)
-        manager = VideoTranscodeManager(job)
-        manager.stop()
+        self.manager.stop()
 
-        self.assertEqual(Job.CANCELLED, job.status)
+        self.assertEqual(Job.CANCELLED, self.job.status)
 
     def test_get_job_info_method_return_job_info(self):
-        job = self.create_job(settings=self.job_settings)
-        manager = VideoTranscodeManager(job)
-
-        self.assertEqual(job.job_info, manager.get_job_info())
+        self.assertEqual(self.job.job_info, self.manager.get_job_info())

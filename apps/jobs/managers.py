@@ -1,3 +1,5 @@
+import copy
+
 from celery.result import AsyncResult
 from celery import chord
 
@@ -15,10 +17,10 @@ class VideoTranscodeManager:
         self.update_job_status_and_task_id(task.task_id)
 
     def create_outputs(self):
-        job_settings = self.job.settings
+        job_settings = copy.deepcopy(self.job.settings)
         outputs = []
         for output_settings in job_settings.pop("outputs"):
-            output_settings["url"] = job_settings["destination"] + "/" + output_settings["name"]
+            output_settings["url"] = self.get_output_folder_path(output_settings)
             job_settings["output"] = output_settings
 
             output = Output(
@@ -36,6 +38,9 @@ class VideoTranscodeManager:
             output.save()
             outputs.append(output)
         return outputs
+
+    def get_output_folder_path(self, output_settings):
+        return self.job.settings["destination"] + "/" + output_settings["name"]
 
     def create_output_tasks(self):
         outputs = self.create_outputs()
