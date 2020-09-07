@@ -6,7 +6,8 @@ from requests.exceptions import ConnectionError
 
 from django.test import TestCase, override_settings
 
-from apps.jobs.tasks import VideoTranscoderRunnable, ManifestGeneratorRunnable, PostDataToWebhookTask
+from apps.jobs.runnables import VideoTranscoderRunnable, ManifestGeneratorRunnable
+from apps.jobs.tasks import PostDataToWebhookTask
 from apps.ffmpeg.utils import mkdir
 from apps.jobs.models import Job
 from .mixins import Mixin
@@ -39,7 +40,7 @@ class TestVideoTranscoder(Mixin, TestCase):
         self.output.settings = json.dumps(self.output_settings)
         self.output.save()
 
-    @mock.patch("apps.jobs.tasks.Manager")
+    @mock.patch("apps.jobs.runnables.Manager")
     def test_ffmanager_should_run_on_running_video_transcoder_task(self, mock_ffmpeg_manager):
         VideoTranscoderRunnable(job_id=self.output.job.id, output_id=self.output.id).do_run()
 

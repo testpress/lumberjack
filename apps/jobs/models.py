@@ -46,7 +46,7 @@ class Job(TimeStampedModel, TimeFramedModel, JobNotifierMixin):
         return f"JOB {self.id} - {self.get_status_display()}"
 
     def update_progress(self):
-        progress_dict = Output.objects.filter(job_id=self.id).aggregate(models.Avg("progress"))
+        progress_dict = self.outputs.aggregate(models.Avg("progress"))
         self.progress = progress_dict["progress__avg"]
         self.save()
 
