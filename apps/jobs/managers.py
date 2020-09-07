@@ -2,7 +2,7 @@ from celery.result import AsyncResult
 from celery import chord
 
 from .tasks import VideoTranscoder, ManifestGenerator
-from apps.jobs.models import Output
+from apps.jobs.models import Output, Job
 
 
 class VideoTranscodeManager:
@@ -45,6 +45,8 @@ class VideoTranscodeManager:
 
     def stop(self):
         AsyncResult(self.job.background_task_id).revoke(terminate=True)
+        self.job.status = Job.CANCELLED
+        self.job.save()
 
     def get_job_info(self):
         return self.job.job_info
