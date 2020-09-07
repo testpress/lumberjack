@@ -29,9 +29,7 @@ class Job(TimeStampedModel, TimeFramedModel):
     id = models.UUIDField("Job Id", primary_key=True, default=uuid.uuid4, editable=False, db_index=True)
     template = models.ForeignKey("presets.JobTemplate", null=True, on_delete=models.SET_NULL)
     settings = models.JSONField("Job Settings", null=True)
-    background_task_id = models.UUIDField(
-        "Background Task Id", default=uuid.uuid4, db_index=True, null=True, max_length=255
-    )
+    background_task_id = models.UUIDField("Background Task Id", db_index=True, null=True, max_length=255)
     progress = models.PositiveSmallIntegerField("Progress", default=0)
     status = StatusField()
     input_url = models.CharField("Input URL", max_length=1024)
@@ -39,6 +37,7 @@ class Job(TimeStampedModel, TimeFramedModel):
     webhook_url = models.URLField("Webhook URL", null=True)
     encryption_key = models.CharField("Encryption Key", max_length=1024, null=True)
     key_url = models.CharField("Encryption Key URL", max_length=1024, null=True)
+    meta_data = models.JSONField("Meta Data", null=True)
 
     class Meta:
         ordering = ("-created",)
@@ -64,11 +63,9 @@ class Output(AbstractOutputPreset):
         (ERROR, "Error"),
     )
 
-    job = models.ForeignKey(Job, null=True, on_delete=models.SET_NULL)
+    job = models.ForeignKey(Job, null=True, on_delete=models.SET_NULL, related_name="outputs")
     status = StatusField()
     progress = models.PositiveSmallIntegerField("Progress", default=0)
-    background_task_id = models.UUIDField(
-        "Background Task Id", default=uuid.uuid4, db_index=True, null=True, max_length=255
-    )
+    background_task_id = models.UUIDField("Background Task Id", db_index=True, null=True, max_length=255)
     settings = models.JSONField("Settings", null=True)
     error_message = models.TextField("Error Message", null=True, blank=True)

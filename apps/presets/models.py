@@ -12,7 +12,7 @@ class JobTemplate(TimeStampedModel):
     slug = models.SlugField("Slug", max_length=255, unique=True, blank=True, db_index=True)
     settings = models.JSONField("Settings", null=True)
     destination = models.CharField("Destination", max_length=1024)
-    segment_length = models.PositiveSmallIntegerField("HLS Segments length", blank=True, null=True)
+    segment_length = models.PositiveSmallIntegerField("HLS Segments length", blank=True, null=True, default=10)
     format = models.CharField("Output Format", max_length=255)
 
     class Meta:
@@ -49,4 +49,4 @@ class AbstractOutputPreset(TimeStampedModel):
 
 
 class OutputPreset(AbstractOutputPreset):
-    job_template = models.ForeignKey(JobTemplate, null=True, on_delete=models.SET_NULL)
+    job_template = models.ForeignKey(JobTemplate, null=True, on_delete=models.SET_NULL, related_name="output_presets")
