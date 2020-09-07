@@ -17,12 +17,18 @@ class CreateJobView(CreateAPIView):
     def create(self, request, *args, **kwargs):
         serializer = self.get_serializer(data=request.data)
         serializer.is_valid(raise_exception=True)
-        job = serializer.save()
-        job.populate_settings()
-        job.save()
-        transcode_manager = VideoTranscodeManager(job)
-        transcode_manager.start()
+        self.perform_create(serializer)
+        self.start_transcoding()
         return Response(status=status.HTTP_201_CREATED)
+
+    def perform_create(self, serializer):
+        self.job = serializer.save()
+        self.job.populate_settings()
+        self.job.save()
+
+    def start_transcoding(self):
+        transcode_manager = VideoTranscodeManager(self.job)
+        transcode_manager.start()
 
 
 class JobsView(ListAPIView):

@@ -10,9 +10,8 @@ class VideoTranscodeManager:
         self.job = job
 
     def start(self):
-        outputs = self.create_outputs()
-        tasks = [VideoTranscoder.s(job_id=self.job.id, output_id=output.id) for output in outputs]
-        task = chord(tasks)(ManifestGenerator.s(job_id=self.job.id))
+        output_tasks = self.create_output_tasks()
+        task = chord(output_tasks)(ManifestGenerator.s(job_id=self.job.id))
         self.job.background_task_id = task.task_id
         self.job.status = Job.QUEUED
         self.job.save()
@@ -20,11 +19,9 @@ class VideoTranscodeManager:
     def create_outputs(self):
         job_settings = self.job.settings
         outputs = []
-        for output_settings in job_settings.get("outputs"):
-            settings = self.job.settings
-            settings.pop("outputs", None)
-            output_settings["url"] = settings["destination"] + "/" + output_settings["name"]
-            settings["output"] = output_settings
+        for output_settings in job_settings.pop("outputs"):
+            output_settings["url"] = job_settings["destination"] + "/" + output_settings["name"]
+            job_settings["output"] = output_settings
 
             output = Output(
                 name=output_settings["name"],
@@ -35,12 +32,16 @@ class VideoTranscodeManager:
                 audio_bitrate=output_settings["audio"]["bitrate"],
                 width=output_settings["video"]["width"],
                 height=output_settings["video"]["height"],
-                settings=settings,
+                settings=job_settings,
                 job=self.job,
             )
             output.save()
             outputs.append(output)
         return outputs
+
+    def create_output_tasks(self):
+        outputs = self.create_outputs()
+        return [VideoTranscoder.s(job_id=self.job.id, output_id=output.id) for output in outputs]
 
     def stop(self):
         if self.job.status == Job.COMPLETED:
