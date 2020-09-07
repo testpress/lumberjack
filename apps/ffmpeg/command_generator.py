@@ -33,8 +33,12 @@ class CommandGenerator(object):
         return {"i": "-"}
 
     @property
+    def local_path(self):
+        return "{}/{}".format(settings.TRANSCODED_VIDEOS_PATH, self.options.get("id"))
+
+    @property
     def output_path(self):
-        return "{}/{}".format(self.options.get("output").get("local_path"), self.options.get("file_name"))
+        return "{}/{}".format(self.local_path, self.options.get("file_name"))
 
     @property
     def media_options(self):

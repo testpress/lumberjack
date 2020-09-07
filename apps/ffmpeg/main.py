@@ -3,6 +3,8 @@ import shlex
 
 from smart_open import open
 
+from django.conf import settings
+
 from apps.ffmpeg.command_generator import CommandGenerator
 from apps.ffmpeg.input_options import InputOptionsFactory
 from apps.ffmpeg.utils import mkdir
@@ -17,6 +19,7 @@ class Manager:
         self.monitor = monitor
         self.options = options
         self.command = CommandGenerator(options).generate()
+        self.local_path = "{}/{}/{}".format(settings.TRANSCODED_VIDEOS_PATH, options.get("id"), options.get("output").get("name"))
 
     def run(self):
         self.observable = Observable()
@@ -29,7 +32,7 @@ class Manager:
 
     def create_observers(self):
         self.progress_observer = ProgressObserver(self.monitor)
-        self.output_observer = OutputObserver(self.options.get("output")["url"], self.options.get("output")["local_path"])
+        self.output_observer = OutputObserver(self.options.get("output")["url"], self.local_path)
 
     def register_observers(self):
         self.observable.register(self.output_observer)
@@ -41,7 +44,7 @@ class Executor:
         self.command = CommandGenerator(options).generate()
         self.input = options.get("input")
         output = options.get("output")
-        path = "{}/{}/{}".format(output.get("local_path"), options.get("id"), output.get("name"))
+        path = "{}/{}/{}".format(settings.TRANSCODED_VIDEOS_PATH, options.get("id"), output.get("name"))
         mkdir(path)
         self.start_process()
 

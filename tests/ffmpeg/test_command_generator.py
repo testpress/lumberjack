@@ -23,7 +23,6 @@ class TestCommandGenerator(SimpleTestCase):
             "output": {
                 "name": "360p",
                 "url": "s3://media.testpress.in/institute/demo/videos/transcoded",
-                "local_path": "tests/ffmpeg/data/1232",
                 "video": {
                     "width": 360,
                     "height": 640,
