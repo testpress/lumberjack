@@ -12,9 +12,7 @@ class VideoTranscodeManager:
     def start(self):
         output_tasks = self.create_output_tasks()
         task = chord(output_tasks)(ManifestGenerator.s(job_id=self.job.id))
-        self.job.background_task_id = task.task_id
-        self.job.status = Job.QUEUED
-        self.job.save()
+        self.update_job_status_and_task_id(task.task_id)
 
     def create_outputs(self):
         job_settings = self.job.settings
@@ -43,13 +41,20 @@ class VideoTranscodeManager:
         outputs = self.create_outputs()
         return [VideoTranscoder.s(job_id=self.job.id, output_id=output.id) for output in outputs]
 
+    def update_job_status_and_task_id(self, task_id):
+        self.job.background_task_id = task_id
+        self.update_job_status(Job.QUEUED)
+
+    def update_job_status(self, status):
+        self.job.status = status
+        self.job.save()
+
     def stop(self):
         if self.job.status == Job.COMPLETED:
             return
 
         AsyncResult(self.job.background_task_id).revoke(terminate=True)
-        self.job.status = Job.CANCELLED
-        self.job.save()
+        self.update_job_status(Job.CANCELLED)
 
     def get_job_info(self):
         return self.job.job_info
