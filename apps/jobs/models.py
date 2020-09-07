@@ -2,12 +2,14 @@ import uuid
 
 from django.db import models
 
+from .model_mixins import JobNotifierMixin
+
 from model_utils.models import TimeStampedModel, TimeFramedModel
 from model_utils.fields import StatusField
 from model_utils import Choices
 
 
-class Job(TimeStampedModel, TimeFramedModel):
+class Job(TimeStampedModel, TimeFramedModel, JobNotifierMixin):
     NOT_STARTED = "not_started"
     QUEUED = "queued"
     PROCESSING = "processing"
@@ -42,6 +44,21 @@ class Job(TimeStampedModel, TimeFramedModel):
 
     def __str__(self):
         return f"JOB {self.id} - {self.get_status_display()}"
+
+    def update_progress(self):
+        progress_dict = self.outputs.aggregate(models.Avg("progress"))
+        self.progress = progress_dict["progress__avg"]
+        self.save()
+
+    @property
+    def job_info(self):
+        return {
+            "id": self.id,
+            "status": self.get_status_display(),
+            "settings": self.settings,
+            "input_url": self.input_url,
+            "output_url": self.output_url,
+        }
 
 
 class AbstractOutput(TimeStampedModel):
@@ -88,3 +105,7 @@ class Output(AbstractOutput):
     background_task_id = models.UUIDField("Background Task Id", db_index=True, null=True, max_length=255)
     settings = models.JSONField("Settings", null=True)
     error_message = models.TextField("Error Message", null=True, blank=True)
+
+    @property
+    def resolution(self):
+        return f"{self.width}x{self.height}"
