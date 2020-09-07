@@ -5,6 +5,8 @@ from django.utils.text import slugify
 
 from model_utils.models import TimeStampedModel
 
+from apps.jobs.models import AbstractOutput
+
 
 class JobTemplate(TimeStampedModel):
     id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
@@ -27,26 +29,5 @@ class JobTemplate(TimeStampedModel):
         super(JobTemplate, self).save(*args, **kwargs)
 
 
-class AbstractOutputPreset(TimeStampedModel):
-    VIDEO_ENCODERS = (("h264", "H244"), ("hevc", "HEVC"))
-
-    id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
-    name = models.CharField("Output Name", max_length=255)
-    video_encoder = models.CharField("Video Encoder", max_length=100, default="h264", choices=VIDEO_ENCODERS)
-    video_bitrate = models.PositiveIntegerField("Video Bitrate")
-    video_preset = models.CharField("Video Preset", max_length=100, default="faster")
-    audio_encoder = models.CharField("Audio Encoder", max_length=100, default="aac")
-    audio_bitrate = models.PositiveIntegerField("Audio Bitrate", default=128000)
-    width = models.PositiveSmallIntegerField("Video Width")
-    height = models.PositiveSmallIntegerField("Video Height")
-
-    class Meta:
-        ordering = ("-created",)
-        abstract = True
-
-    def __str__(self):
-        return self.name
-
-
-class OutputPreset(AbstractOutputPreset):
+class OutputPreset(AbstractOutput):
     job_template = models.ForeignKey(JobTemplate, null=True, on_delete=models.SET_NULL, related_name="output_presets")

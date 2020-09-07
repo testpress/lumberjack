@@ -2,8 +2,6 @@ import uuid
 
 from django.db import models
 
-from apps.presets.models import AbstractOutputPreset
-
 from model_utils.models import TimeStampedModel, TimeFramedModel
 from model_utils.fields import StatusField
 from model_utils import Choices
@@ -46,7 +44,28 @@ class Job(TimeStampedModel, TimeFramedModel):
         return f"JOB {self.id} - {self.get_status_display()}"
 
 
-class Output(AbstractOutputPreset):
+class AbstractOutput(TimeStampedModel):
+    VIDEO_ENCODERS = (("h264", "H244"), ("hevc", "HEVC"))
+
+    id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
+    name = models.CharField("Output Name", max_length=255)
+    video_encoder = models.CharField("Video Encoder", max_length=100, default="h264", choices=VIDEO_ENCODERS)
+    video_bitrate = models.PositiveIntegerField("Video Bitrate")
+    video_preset = models.CharField("Video Preset", max_length=100, default="faster")
+    audio_encoder = models.CharField("Audio Encoder", max_length=100, default="aac")
+    audio_bitrate = models.PositiveIntegerField("Audio Bitrate", default=128000)
+    width = models.PositiveSmallIntegerField("Video Width")
+    height = models.PositiveSmallIntegerField("Video Height")
+
+    class Meta:
+        ordering = ("-created",)
+        abstract = True
+
+    def __str__(self):
+        return self.name
+
+
+class Output(AbstractOutput):
     NOT_STARTED = "not_started"
     QUEUED = "queued"
     PROCESSING = "processing"
