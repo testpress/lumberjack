@@ -2,8 +2,9 @@ import abc
 import os
 import re
 import shutil
+import io
 
-from smart_open import parse_uri
+from smart_open import parse_uri, open
 import boto3
 from botocore.exceptions import ClientError
 
@@ -21,6 +22,10 @@ class OutputFactory:
 class Storage(abc.ABC):
     @abc.abstractmethod
     def save(self, directory, **options):
+        pass
+
+    @abc.abstractmethod
+    def save_data(self, content: str, path):
         pass
 
 
@@ -79,6 +84,11 @@ class S3(Storage):
                 absolute_file_path, s3_path.bucket_id, s3_path.key_id, ExtraArgs={"ACL": "public-read"}
             )
 
+    def save_data(self, content: str, path: str):
+        s3_path = parse_uri(self.destination_url)
+        file_obj = io.BytesIO(content.encode())
+        self.client.upload_fileobj(file_obj, s3_path.bucket_id, s3_path.key_id, ExtraArgs={"ACL": "public-read"})
+
 
 class FileStorage(Storage):
     def __init__(self, destination_directory):
@@ -92,3 +102,8 @@ class FileStorage(Storage):
         self.is_being_moved = True
         shutil.move(source_directory, self.destination_directory)
         self.is_being_moved = False
+
+    def save_data(self, content, path):
+        content_as_bytes = io.BytesIO(content.encode()).read()
+        with open(self.destination_directory, "wb") as fout:
+            fout.write(content_as_bytes)
