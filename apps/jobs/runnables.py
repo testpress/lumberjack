@@ -101,7 +101,7 @@ class ManifestGeneratorRunnable(CeleryRunnable):
 
     def upload(self):
         storage = OutputFactory.create(self.job.output_url)
-        storage.save_data(self.manifest_content, self.job.output_url)
+        storage.save_text(self.manifest_content, self.job.output_url)
 
     def get_media_details(self):
         media_details = []
