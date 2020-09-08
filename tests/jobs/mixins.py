@@ -1,11 +1,11 @@
-from .factories import JobFactory, OutputFactory
+from .factories import JobFactory, OutputFactory, JobTemplateFactory
 
 from exam import fixture
 
 
 class Mixin(object):
-    def create_job(self):
-        return JobFactory()
+    def create_job(self, **kwargs):
+        return JobFactory(**kwargs)
 
     @fixture
     def job(self):
@@ -18,3 +18,10 @@ class Mixin(object):
     @fixture
     def output(self):
         return self.create_output()
+
+    def create_job_template(self):
+        return JobTemplateFactory()
+
+    @fixture
+    def job_template(self):
+        return self.create_job_template()
