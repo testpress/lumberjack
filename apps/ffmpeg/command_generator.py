@@ -37,7 +37,7 @@ class CommandGenerator(object):
 
     @property
     def output_path(self):
-        return "{}/{}".format(self.local_path, self.options.get("file_name"))
+        return "{}/{}/{}".format(self.local_path, self.options.get("output")["name"], self.options.get("file_name"))
 
     @property
     def media_options(self):
