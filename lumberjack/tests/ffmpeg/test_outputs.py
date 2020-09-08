@@ -26,11 +26,11 @@ class TestS3Storage(SimpleTestCase):
         self.s3_storage = S3("s3://somebucket/folder")
         self.s3_storage.client.create_bucket(Bucket="somebucket")
 
-    @patch('os.remove')
+    @patch("os.remove")
     def test_store_should_upload_files_to_s3_and_remove_it(self, mock_os_remove):
         self.s3_storage.save("tests/ffmpeg/data")
 
-        s3_response = self.s3_storage.client.get_object(Bucket='somebucket', Key='folder/video.mp4')
+        s3_response = self.s3_storage.client.get_object(Bucket="somebucket", Key="folder/video.mp4")
         self.assertEqual(200, s3_response["ResponseMetadata"]["HTTPStatusCode"])
         self.assertTrue(mock_os_remove.called)
 
