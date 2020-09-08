@@ -75,7 +75,9 @@ class S3(Storage):
         try:
             self.client.head_object(Bucket=s3_path.bucket_id, Key=s3_path.key_id)
         except ClientError:
-            self.client.upload_file(absolute_file_path, s3_path.bucket_id, s3_path.key_id)
+            self.client.upload_file(
+                absolute_file_path, s3_path.bucket_id, s3_path.key_id, ExtraArgs={"ACL": "public-read"}
+            )
 
 
 class FileStorage(Storage):
