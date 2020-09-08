@@ -128,7 +128,7 @@ USE_TZ = True
 STATIC_URL = "/static/"
 
 
-TRANSCODED_VIDEOS_PATH = "/Users/karthik/Downloads/transcoded_videos"
+TRANSCODED_VIDEOS_PATH = get_env_variable("TRANSCODED_VIDEOS_PATH")
 AWS_ACCESS_KEY_ID = get_env_variable("AWS_ACCESS_KEY_ID")
 AWS_SECRET_ACCESS_KEY = get_env_variable("AWS_SECRET_ACCESS_KEY")
 AWS_STORAGE_BUCKET_NAME = get_env_variable("AWS_STORAGE_BUCKET_NAME")
