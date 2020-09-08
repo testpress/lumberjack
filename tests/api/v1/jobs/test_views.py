@@ -4,10 +4,16 @@ import uuid
 from django.test import RequestFactory, TestCase
 
 from apps.api.v1.jobs.views import CreateJobView, job_info_view, cancel_job_view
-from tests.jobs.mixins import Mixin
+from tests.jobs.mixins import Mixin as JobMixin
 
 
-class TestCreateJobView(TestCase, Mixin):
+class Mixin:
+    def make_request(self, data):
+        request = self.factory.post("/api/v1/jobs/create", data=data)
+        return CreateJobView.as_view()(request)
+
+
+class TestCreateJobView(TestCase, Mixin, JobMixin):
     def setUp(self):
         self.factory = RequestFactory()
 
@@ -27,26 +33,29 @@ class TestCreateJobView(TestCase, Mixin):
         self.assertEqual(201, response.status_code)
         mock_video_transcode_manager.assert_called()
 
-    def test_api_should_throw_error_if_either_template_or_settings_is_not_provided(self):
+    def test_api_should_fail_if_template_is_not_provided(self):
         data = self.data
         del data["template"]
-        request = self.factory.post("/api/v1/jobs/create", data=data)
-        response = CreateJobView.as_view()(request)
+        response = self.make_request(data)
 
         self.assertEqual(400, response.status_code)
 
-    def test_api_should_throw_error_if_input_url_or_output_url_is_not_provided(self):
-        required_parameters = ["input_url", "output_url"]
-        for parameter in required_parameters:
-            data = self.data
-            del data[parameter]
-            request = self.factory.post("/api/v1/jobs/create", data=data)
-            response = CreateJobView.as_view()(request)
+    def test_api_should_fail_if_input_url_is_not_provided(self):
+        data = self.data
+        del data["input_url"]
+        response = self.make_request(data)
 
-            self.assertEqual(400, response.status_code)
+        self.assertEqual(400, response.status_code)
+
+    def test_api_should_fail_if_output_url_is_not_provided(self):
+        data = self.data
+        del data["output_url"]
+        response = self.make_request(data)
+
+        self.assertEqual(400, response.status_code)
 
 
-class TestJobInfoView(TestCase, Mixin):
+class TestJobInfoView(TestCase, JobMixin):
     def setUp(self):
         self.factory = RequestFactory()
 
@@ -64,7 +73,7 @@ class TestJobInfoView(TestCase, Mixin):
         self.assertEqual(404, response.status_code)
 
 
-class TestCancelJobView(TestCase, Mixin):
+class TestCancelJobView(TestCase, JobMixin):
     def setUp(self):
         self.factory = RequestFactory()
 

@@ -63,7 +63,7 @@ class Job(TimeStampedModel, TimeFramedModel, JobNotifierMixin):
 
     def populate_settings(self):
         if self.template is not None:
-            settings = self.template.settings
+            settings = self.template.settings or {}
             settings["template"] = self.template.id.hex
         else:
             settings = self.settings
