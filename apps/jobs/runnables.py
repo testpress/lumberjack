@@ -105,7 +105,7 @@ class ManifestGeneratorRunnable(CeleryRunnable):
 
     def upload(self):
         file = io.BytesIO(self.manifest_content.encode()).read()
-        options = InputOptionsFactory.get(self.job.output_url)
+        options = InputOptionsFactory.get(self.job.output_url).options
         with open(self.job.output_url, "wb", transport_params=options) as fout:
             fout.write(file)
 

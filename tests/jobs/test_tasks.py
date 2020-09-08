@@ -2,8 +2,12 @@ import json
 import mock
 import responses
 from requests.exceptions import ConnectionError
+from moto import mock_s3
+import boto3
+from smart_open import parse_uri
 
 from django.test import TestCase
+from django.conf import settings
 
 from apps.jobs.runnables import VideoTranscoderRunnable, ManifestGeneratorRunnable
 from apps.jobs.tasks import PostDataToWebhookTask
@@ -60,7 +64,7 @@ class TestVideoTranscoder(Mixin, TestCase):
 class TestManifestGenerator(Mixin, TestCase):
     def setUp(self) -> None:
         self.manifest_generator = ManifestGeneratorRunnable(job_id=self.output.job.id)
-        self.manifest_generator.job = self.job
+        self.manifest_generator.initialize()
 
     @property
     def media_details(self):
@@ -86,6 +90,25 @@ class TestManifestGenerator(Mixin, TestCase):
         self.manifest_generator.complete_job()
 
         self.assertEqual(Job.COMPLETED, self.job.status)
+
+    def test_upload(self):
+        self.start_s3_mock()
+        self.manifest_generator.generate_manifest_content()
+        self.manifest_generator.upload()
+
+        uploaded_content = self.get_file_from_s3(self.job.output_url).read().decode("utf-8")
+        self.assertEqual(uploaded_content, self.manifest_generator.manifest_content)
+
+    def start_s3_mock(self):
+        s3_mock = mock_s3()
+        s3_mock.start()
+        conn = boto3.resource("s3", region_name=settings.AWS_S3_REGION_CODE)
+        conn.create_bucket(Bucket="bucket")
+
+    def get_file_from_s3(self, url):
+        s3_path = parse_uri(url)
+        conn = boto3.resource("s3", region_name=settings.AWS_S3_REGION_CODE)
+        return conn.Object(s3_path.bucket_id, s3_path.key_id).get()["Body"]
 
 
 class TestPostDataToWebhook(TestCase):
