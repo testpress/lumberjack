@@ -1,11 +1,7 @@
-import io
-
-from smart_open import open
-
 from django.shortcuts import get_object_or_404
 
 from apps.ffmpeg.main import Manager
-from apps.ffmpeg.input_options import InputOptionsFactory
+from apps.ffmpeg.outputs import OutputFactory
 from apps.jobs.models import Job, Output
 
 
@@ -104,10 +100,8 @@ class ManifestGeneratorRunnable(CeleryRunnable):
         return "#EXTM3U\n#EXT-X-VERSION:3\n"
 
     def upload(self):
-        file = io.BytesIO(self.manifest_content.encode()).read()
-        options = InputOptionsFactory.get(self.job.output_url).options
-        with open(self.job.output_url, "wb", transport_params=options) as fout:
-            fout.write(file)
+        storage = OutputFactory.create(self.job.output_url)
+        storage.save_text(self.manifest_content, self.job.output_url)
 
     def get_media_details(self):
         media_details = []
