@@ -39,4 +39,4 @@ class S3InputOptions(AbstractInputOptions):
             aws_secret_access_key=settings.AWS_SECRET_ACCESS_KEY,
             region_name=settings.AWS_S3_REGION_CODE,
         )
-        return {"session": session, "buffer_size": 1024}
+        return {"session": session, "buffer_size": 32000}
