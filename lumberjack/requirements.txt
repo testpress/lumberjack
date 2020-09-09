@@ -12,3 +12,4 @@ factory-boy==3.0.1
 exam==0.10.6
 responses==0.11.0
 djangorestframework==3.11.1
+psycopg2==2.8.5
