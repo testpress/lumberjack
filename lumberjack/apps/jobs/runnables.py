@@ -1,4 +1,5 @@
 from django.shortcuts import get_object_or_404
+from django.utils.timezone import now
 
 from apps.ffmpeg.main import Manager
 from apps.ffmpeg.outputs import OutputFactory
@@ -40,7 +41,7 @@ class VideoTranscoderRunnable(CeleryRunnable):
         self.initialize()
 
         if self.is_job_status_not_updated():
-            self.update_job_status_as_processing()
+            self.update_job_start_time_and_initial_status()
             self.job.notify_webhook()
         self.update_output_status(Output.PROCESSING)
 
@@ -58,8 +59,9 @@ class VideoTranscoderRunnable(CeleryRunnable):
     def is_job_status_not_updated(self):
         return self.job.status != Job.PROCESSING
 
-    def update_job_status_as_processing(self):
+    def update_job_start_time_and_initial_status(self):
         self.job.status = Job.PROCESSING
+        self.job.start = now()
         self.job.save()
 
     def update_output_status(self, status):
@@ -126,4 +128,5 @@ class ManifestGeneratorRunnable(CeleryRunnable):
 
     def complete_job(self):
         self.job.status = Job.COMPLETED
+        self.job.end = now()
         self.job.save()
