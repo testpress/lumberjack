@@ -19,7 +19,7 @@ class CreateJobView(CreateAPIView):
         serializer.is_valid(raise_exception=True)
         self.perform_create(serializer)
         self.start_transcoding()
-        return Response(status=status.HTTP_201_CREATED, data=self.job.job_info, content_type="application/json")
+        return Response(status=status.HTTP_201_CREATED, data=self.job.job_info)
 
     def perform_create(self, serializer):
         self.job = serializer.save()
