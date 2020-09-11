@@ -90,14 +90,14 @@ class EventSource(Observable):
 
     def run(self):
         while True:
-            events = self.parse_log()
+            events = self.generate_events_from_log()
             if events:
                 for event in events:
                     self.notify(event)
             else:
                 break
 
-    def parse_log(self):
+    def generate_events_from_log(self):
         while True:
             events = []
             log = self.process.stdout.readline().strip()
