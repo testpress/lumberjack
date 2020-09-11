@@ -44,7 +44,7 @@ class S3(Storage):
 
     def save(self, source_directory, is_transcode_completed=False):
         exclude_files = []
-        if is_transcode_completed:
+        if not is_transcode_completed:
             exclude_files = [self.INCOMPLETE_MANIFEST_FILES]
 
         if self.is_uploading:
