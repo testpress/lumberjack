@@ -14,7 +14,7 @@ class VideoTranscodeManager:
     def start(self):
         output_tasks = self.create_output_tasks()
         task = chord(output_tasks)(ManifestGenerator.s(job_id=self.job.id))
-        self.update_job_status_and_task_id(task.task_id)
+        self.save_background_task_to_job(task)
 
     def create_outputs(self):
         job_settings = copy.deepcopy(self.job.settings)
@@ -46,8 +46,8 @@ class VideoTranscodeManager:
         outputs = self.create_outputs()
         return [VideoTranscoder.s(job_id=self.job.id, output_id=output.id) for output in outputs]
 
-    def update_job_status_and_task_id(self, task_id):
-        self.job.background_task_id = task_id
+    def save_background_task_to_job(self, task):
+        self.job.background_task_id = task.task_id
         self.update_job_status(Job.QUEUED)
 
     def update_job_status(self, status):
