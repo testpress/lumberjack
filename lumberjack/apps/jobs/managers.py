@@ -1,10 +1,10 @@
 import copy
 
-from celery.result import AsyncResult
 from celery import chord
 
 from .tasks import VideoTranscoder, ManifestGenerator
 from apps.jobs.models import Output, Job
+from lumberjack.celery import app
 
 
 class VideoTranscodeManager:
@@ -47,6 +47,7 @@ class VideoTranscodeManager:
         return [VideoTranscoder.s(job_id=self.job.id, output_id=output.id) for output in outputs]
 
     def save_background_task_to_job(self, task):
+        task.parent.save()
         self.job.background_task_id = task.task_id
         self.update_job_status(Job.QUEUED)
 
@@ -58,8 +59,9 @@ class VideoTranscodeManager:
         if self.job.status == Job.COMPLETED:
             return
 
-        AsyncResult(self.job.background_task_id).revoke(terminate=True)
         self.update_job_status(Job.CANCELLED)
+        task = app.GroupResult.restore(str(self.job.background_task_id))
+        task.revoke(terminate=True)
 
     def get_job_info(self):
         return self.job.job_info

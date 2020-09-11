@@ -1,6 +1,7 @@
 from django.shortcuts import get_object_or_404
 from django.utils.timezone import now
 
+from lumberjack.celery import app
 from apps.ffmpeg.main import Manager
 from apps.ffmpeg.outputs import OutputFactory
 from apps.jobs.models import Job, Output
@@ -51,6 +52,7 @@ class VideoTranscoderRunnable(CeleryRunnable):
         except Exception as error:
             self.save_exception(error)
             self.update_output_status(Output.ERROR)
+            self.stop_job_and_notify()
 
     def initialize(self):
         self.job = Job.objects.get(id=self.job_id)
@@ -84,6 +86,13 @@ class VideoTranscoderRunnable(CeleryRunnable):
     def save_exception(self, error):
         self.output.error_message = error
         self.output.save()
+
+    def stop_job_and_notify(self):
+        self.job.status = Job.ERROR
+        self.job.save()
+        self.job.notify_webhook()
+        task = app.GroupResult.restore(str(self.job.background_task_id))
+        task.revoke(terminate=True)
 
 
 class ManifestGeneratorRunnable(CeleryRunnable):

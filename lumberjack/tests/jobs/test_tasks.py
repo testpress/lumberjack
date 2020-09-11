@@ -60,6 +60,14 @@ class TestVideoTranscoder(Mixin, TestCase):
         self.assertEqual(self.output.progress, 20)
         self.assertEqual(self.job.progress, 20)
 
+    @mock.patch("apps.jobs.runnables.Manager", **{"return_value.run.side_effect": Exception()})
+    @mock.patch("apps.jobs.managers.app.GroupResult")
+    def test_task_should_be_stopped_in_case_of_exception(self, mock_group_result, mock_ffmpeg_manager):
+        self.video_transcoder.do_run()
+
+        mock_group_result.restore().revoke.assert_called()
+        self.assertEqual(self.video_transcoder.job.status, Job.ERROR)
+
 
 class TestManifestGenerator(Mixin, TestCase):
     def setUp(self) -> None:
