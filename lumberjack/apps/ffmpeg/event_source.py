@@ -87,6 +87,7 @@ class EventSource(Observable):
         self.time = 0
         self.process = process
         self.thread = threading.Thread(target=self.run)
+        self.is_first_time_called = True
 
     def run(self):
         while True:
@@ -102,13 +103,16 @@ class EventSource(Observable):
             events = []
             log = self.process.stdout.readline().strip()
             if self.is_stdout_finished(log):
-                return False
+                if self.is_first_time_called:
+                    events.append(self.create_output_event(is_transcode_completed=True))
+                    self.is_first_time_called = False
+                return events
 
             percentage = self.get_percentage(log)
             events.append(self.create_progress_event(percentage))
 
             if self.has_output_files(log):
-                events.append(self.create_output_event(percentage == 100))
+                events.append(self.create_output_event())
             return events
 
     def is_stdout_finished(self, log):
@@ -117,7 +121,7 @@ class EventSource(Observable):
     def create_progress_event(self, percentage):
         return FFmpegEvent(FFmpegEvent.PROGRESS_EVENT, percentage)
 
-    def create_output_event(self, is_transcode_completed):
+    def create_output_event(self, is_transcode_completed=False):
         return FFmpegEvent(FFmpegEvent.OUTPUT_EVENT, is_transcode_completed)
 
     def get_percentage(self, log):
