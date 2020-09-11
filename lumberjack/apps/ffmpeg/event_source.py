@@ -87,7 +87,6 @@ class EventSource(Observable):
         self.time = 0
         self.process = process
         self.thread = threading.Thread(target=self.run)
-        self.is_first_time_called = True
 
     def run(self):
         while True:
@@ -96,6 +95,7 @@ class EventSource(Observable):
                 for event in events:
                     self.notify(event)
             else:
+                self.notify_transcode_completed()
                 break
 
     def generate_events_from_log(self):
@@ -103,10 +103,7 @@ class EventSource(Observable):
             events = []
             log = self.process.stdout.readline().strip()
             if self.is_stdout_finished(log):
-                if self.is_first_time_called:
-                    events.append(self.create_output_event(is_transcode_completed=True))
-                    self.is_first_time_called = False
-                return events
+                return False
 
             percentage = self.get_percentage(log)
             events.append(self.create_progress_event(percentage))
@@ -117,6 +114,9 @@ class EventSource(Observable):
 
     def is_stdout_finished(self, log):
         return log == "" and self.process.poll() is not None
+
+    def notify_transcode_completed(self):
+        self.create_output_event(is_transcode_completed=True)
 
     def create_progress_event(self, percentage):
         return FFmpegEvent(FFmpegEvent.PROGRESS_EVENT, percentage)
