@@ -127,3 +127,8 @@ class Output(AbstractOutput):
     @property
     def resolution(self):
         return f"{self.width}x{self.height}"
+
+    def __str__(self):
+        if self.status == self.PROCESSING:
+            return f"{self.name} - {self.job_id} - {self.progress}% Transcoded"
+        return f"{self.name} - {self.job_id} - {self.get_status_display()}"
