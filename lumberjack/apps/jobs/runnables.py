@@ -122,7 +122,7 @@ class ManifestGeneratorRunnable(CeleryRunnable):
         for media_detail in media_details:
             content += (
                 f"#EXT-X-STREAM-INF:BANDWIDTH={media_detail['bandwidth']},"
-                f"RESOLUTION={media_detail['resolution']}\n{media_detail['name']}.m3u8\n\n"
+                f"RESOLUTION={media_detail['resolution']}\n{media_detail['name']}\n\n"
             )
         self.manifest_content = content
 
