@@ -82,7 +82,7 @@ class TestManifestGenerator(Mixin, TestCase):
 
         expected_manifest_content = (
             "#EXTM3U\n#EXT-X-VERSION:3\n#EXT-X-STREAM-INF:BANDWIDTH=1500000,"
-            "RESOLUTION=1280x720\n720p/video.m3u8.m3u8\n\n"
+            "RESOLUTION=1280x720\n720p/video.m3u8\n\n"
         )
         self.assertEqual(expected_manifest_content, self.manifest_generator.manifest_content)
 

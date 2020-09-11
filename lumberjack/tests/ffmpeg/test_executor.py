@@ -41,7 +41,6 @@ class TestExecutor(SimpleTestCase):
         executor = Executor(self.data)
         executor.run()
 
-        self.assertTrue(path.exists("tests/ffmpeg/data/test/1232/video.m3u8"))
         self.assertTrue(path.exists("tests/ffmpeg/data/test/1232/360p/video_0.ts"))
 
     @override_settings(TRANSCODED_VIDEOS_PATH="tests/ffmpeg/data/test")

@@ -37,7 +37,7 @@ class TestCommandGenerator(SimpleTestCase):
             "ffmpeg -hide_banner -i - -c:a aac -c:v h264 -preset fast -s 360x640 -b:v 500000 -format hls "
             "-hls_list_size 0 -hls_time 10 -hls_segment_filename tests/ffmpeg/data/1232/360p/video_%d.ts "
             "-hls_key_info_file tests/ffmpeg/data/1232/key/enc.keyinfo "
-            "tests/ffmpeg/data/1232/video.m3u8"
+            "tests/ffmpeg/data/1232/360p/video.m3u8"
         )
 
         self.assertEqual(ffmpeg_command, self.command_generator.generate())
@@ -50,7 +50,7 @@ class TestCommandGenerator(SimpleTestCase):
 
     @override_settings(TRANSCODED_VIDEOS_PATH="tests/ffmpeg/data")
     def test_output_path_should_use_path_from_settings(self):
-        output_path = "tests/ffmpeg/data/1232/video.m3u8"
+        output_path = "tests/ffmpeg/data/1232/360p/video.m3u8"
         self.assertEqual(output_path, self.command_generator.output_path)
 
 
