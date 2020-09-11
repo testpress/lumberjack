@@ -116,7 +116,8 @@ class EventSource(Observable):
         return log == "" and self.process.poll() is not None
 
     def notify_transcode_completed(self):
-        self.create_output_event(is_transcode_completed=True)
+        event = self.create_output_event(is_transcode_completed=True)
+        self.notify(event)
 
     def create_progress_event(self, percentage):
         return FFmpegEvent(FFmpegEvent.PROGRESS_EVENT, percentage)
