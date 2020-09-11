@@ -48,11 +48,12 @@ class TestVideoTranscodeManager(TestCase, Mixin):
         self.assertEqual(1, self.job.outputs.count())
         self.assertEqual(Output.objects.filter(job_id=self.job.id).first(), self.job.outputs.first())
 
-    @mock.patch("apps.jobs.managers.AsyncResult")
-    def test_stop_should_revoke_background_task(self, mock_async_result):
+    @mock.patch("apps.jobs.managers.app.GroupResult")
+    def test_stop_should_revoke_background_task(self, mock_group_result):
         self.manager.stop()
 
         self.assertEqual(Job.CANCELLED, self.job.status)
+        mock_group_result.restore().revoke.assert_called()
 
     def test_get_job_info_method_return_job_info(self):
         self.assertEqual(self.job.job_info, self.manager.get_job_info())
