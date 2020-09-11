@@ -95,6 +95,7 @@ class EventSource(Observable):
                 for event in events:
                     self.notify(event)
             else:
+                self.notify_transcode_completed()
                 break
 
     def generate_events_from_log(self):
@@ -108,16 +109,20 @@ class EventSource(Observable):
             events.append(self.create_progress_event(percentage))
 
             if self.has_output_files(log):
-                events.append(self.create_output_event(percentage == 100))
+                events.append(self.create_output_event())
             return events
 
     def is_stdout_finished(self, log):
         return log == "" and self.process.poll() is not None
 
+    def notify_transcode_completed(self):
+        event = self.create_output_event(is_transcode_completed=True)
+        self.notify(event)
+
     def create_progress_event(self, percentage):
         return FFmpegEvent(FFmpegEvent.PROGRESS_EVENT, percentage)
 
-    def create_output_event(self, is_transcode_completed):
+    def create_output_event(self, is_transcode_completed=False):
         return FFmpegEvent(FFmpegEvent.OUTPUT_EVENT, is_transcode_completed)
 
     def get_percentage(self, log):
