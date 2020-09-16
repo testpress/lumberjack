@@ -34,8 +34,7 @@ class PostDataToWebhookTask(CeleryTask):
         data_json = json.dumps(data, cls=DjangoJSONEncoder)
 
         try:
-            response = requests.post(url, data=data_json, headers={"Content-Type": "application/json"})
-            return response
+            requests.post(url, data=data_json, headers={"Content-Type": "application/json"})
         except requests.ConnectionError:
             self.retry()
 

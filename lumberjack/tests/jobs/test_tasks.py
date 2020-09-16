@@ -128,13 +128,13 @@ class TestPostDataToWebhook(TestCase):
     def url(self):
         return "http://domain.com/webhook/"
 
-    @responses.activate
-    def test_data_should_be_posted_to_webhook(self):
-        responses.add(responses.POST, self.url, json=self.data, status=200)
-        response = PostDataToWebhookTask.run(data=self.data, url=self.url)
+    @mock.patch("apps.jobs.tasks.requests")
+    def test_data_should_be_posted_to_webhook(self, requests_mock):
+        PostDataToWebhookTask.run(data=self.data, url=self.url)
 
-        self.assertEqual(self.data, json.loads(response.content))
-        self.assertEqual(200, response.status_code)
+        requests_mock.post.assert_called_with(
+            "http://domain.com/webhook/", data=json.dumps(self.data), headers={"Content-Type": "application/json"}
+        )
 
     @responses.activate
     @mock.patch("apps.jobs.tasks.PostDataToWebhookTask.retry")
