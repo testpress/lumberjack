@@ -12,8 +12,17 @@ class VideoTranscodeManager:
         self.job = job
 
     def start(self):
-        output_tasks = self.create_output_tasks()
-        task = chord(output_tasks)(ManifestGenerator.s(job_id=self.job.id))
+        outputs = self.create_outputs()
+        output_tasks = self.create_output_tasks(outputs)
+        self.start_tasks(output_tasks)
+
+    def restart(self):
+        self.terminate_task()
+        output_tasks = self.create_output_tasks(self.job.outputs.all())
+        self.start_tasks(output_tasks)
+
+    def start_tasks(self, tasks):
+        task = chord(tasks)(ManifestGenerator.s(job_id=self.job.id))
         self.save_background_task_to_job(task)
 
     def create_outputs(self):
@@ -42,8 +51,7 @@ class VideoTranscodeManager:
     def get_output_folder_path(self, output_settings):
         return self.job.settings["destination"] + "/" + output_settings["name"]
 
-    def create_output_tasks(self):
-        outputs = self.create_outputs()
+    def create_output_tasks(self, outputs):
         return [VideoTranscoder.s(job_id=self.job.id, output_id=output.id) for output in outputs]
 
     def save_background_task_to_job(self, task):
@@ -60,6 +68,9 @@ class VideoTranscodeManager:
             return
 
         self.update_job_status(Job.CANCELLED)
+        self.terminate_task()
+
+    def terminate_task(self):
         task = app.GroupResult.restore(str(self.job.background_task_id))
         task.revoke(terminate=True)
 

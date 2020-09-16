@@ -3,7 +3,7 @@ import uuid
 
 from django.test import RequestFactory, TestCase
 
-from apps.api.v1.jobs.views import CreateJobView, job_info_view, cancel_job_view
+from apps.api.v1.jobs.views import CreateJobView, job_info_view, cancel_job_view, restart_job_view
 from tests.jobs.mixins import Mixin as JobMixin
 
 
@@ -88,5 +88,19 @@ class TestCancelJobView(TestCase, JobMixin):
     def test_error_should_be_thrown_for_incorrect_job_id(self):
         request = self.factory.post("/api/v1/jobs/cancel", data={"job_id": uuid.uuid4()})
         response = cancel_job_view(request)
+
+        self.assertEqual(404, response.status_code)
+
+    @mock.patch("apps.api.v1.jobs.views.VideoTranscodeManager.restart")
+    def test_restart_api_should_restart_video_transcoding(self, mock_video_transcode_manager_restart):
+        request = self.factory.post("/api/v1/jobs/restart", data={"job_id": self.job.id})
+        response = restart_job_view(request)
+
+        self.assertEqual(200, response.status_code)
+        mock_video_transcode_manager_restart.assert_called()
+
+    def test_restart_api_should_throw_error_for_incorrect_job_id(self):
+        request = self.factory.post("/api/v1/jobs/restart", data={"job_id": uuid.uuid4()})
+        response = restart_job_view(request)
 
         self.assertEqual(404, response.status_code)
