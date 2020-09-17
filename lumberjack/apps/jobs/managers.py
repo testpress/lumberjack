@@ -48,7 +48,7 @@ class VideoTranscodeManager:
 
     def save_background_task_to_job(self, task):
         task.parent.save()
-        self.job.background_task_id = task.task_id
+        self.job.background_task_id = task.parent.id
         self.update_job_status(Job.QUEUED)
 
     def update_job_status(self, status):

@@ -34,7 +34,7 @@ class TestVideoTranscodeManager(TestCase, Mixin):
 
     @mock.patch("apps.jobs.managers.chord")
     def test_start_should_start_background_task(self, mock_celery_chord):
-        mock_celery_chord.return_value.return_value.task_id = 12
+        mock_celery_chord.return_value.return_value.parent.id = 12
         self.manager.start()
 
         mock_celery_chord.assert_called()
@@ -42,7 +42,7 @@ class TestVideoTranscodeManager(TestCase, Mixin):
 
     @mock.patch("apps.jobs.managers.chord")
     def test_start_should_create_outputs_for_job(self, mock_celery_chord):
-        mock_celery_chord.return_value.return_value.task_id = 12
+        mock_celery_chord.return_value.return_value.parent.id = 12
         self.manager.start()
 
         self.assertEqual(1, self.job.outputs.count())
