@@ -72,7 +72,8 @@ class VideoTranscodeManager:
 
     def terminate_task(self):
         task = app.GroupResult.restore(str(self.job.background_task_id))
-        task.revoke(terminate=True)
+        if task:
+            task.revoke(terminate=True)
 
     def get_job_info(self):
         return self.job.job_info

@@ -92,7 +92,8 @@ class VideoTranscoderRunnable(CeleryRunnable):
         self.job.save()
         self.job.notify_webhook()
         task = app.GroupResult.restore(str(self.job.background_task_id))
-        task.revoke(terminate=True)
+        if task:
+            task.revoke(terminate=True)
 
 
 class ManifestGeneratorRunnable(CeleryRunnable):
