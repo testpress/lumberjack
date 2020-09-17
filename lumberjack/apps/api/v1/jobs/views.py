@@ -50,3 +50,12 @@ def cancel_job_view(request):
     transcode_manager = VideoTranscodeManager(job)
     transcode_manager.stop()
     return Response(status=status.HTTP_200_OK)
+
+
+@api_view(["POST"])
+def restart_job_view(request):
+    job_id = request.data["job_id"]
+    job = get_object_or_404(Job, id=job_id)
+    transcode_manager = VideoTranscodeManager(job)
+    transcode_manager.restart()
+    return Response(status=status.HTTP_200_OK)
