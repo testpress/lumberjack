@@ -1,3 +1,4 @@
+import json
 import mock
 import uuid
 
@@ -23,6 +24,7 @@ class TestCreateJobView(TestCase, Mixin, JobMixin):
             "template": self.job_template.id,
             "input_url": "s3://abc/video.mp4",
             "output_url": "s3://abc/video/output/video.m3u8",
+            "meta_data": json.dumps({"content_url": "https://domain.com/chapters/chapter-3/40/"}),
         }
 
     @mock.patch("apps.api.v1.jobs.views.VideoTranscodeManager.start")

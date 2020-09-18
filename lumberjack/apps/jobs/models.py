@@ -1,5 +1,6 @@
 import uuid
 import os
+import json
 
 from django.db import models
 
@@ -72,6 +73,9 @@ class Job(TimeStampedModel, TimeFramedModel, JobNotifierMixin):
         settings.update(
             {"id": self.id.hex, "destination": destination, "file_name": file_name, "input": self.input_url}
         )
+
+        if self.meta_data:
+            settings.update({"meta_data": json.loads(self.meta_data)})
 
         if self.encryption_key:
             settings.update({"encryption": {"key": self.encryption_key, "url": self.key_url}})
