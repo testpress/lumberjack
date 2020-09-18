@@ -15,13 +15,4 @@ class JobSerializer(serializers.ModelSerializer):
 
     class Meta:
         model = Job
-        fields = [
-            "template",
-            "settings",
-            "input_url",
-            "output_url",
-            "webhook_url",
-            "encryption_key",
-            "key_url",
-            "meta_data",
-        ]
+        fields = ["template", "settings", "input_url", "output_url", "webhook_url", "encryption_key", "key_url"]
