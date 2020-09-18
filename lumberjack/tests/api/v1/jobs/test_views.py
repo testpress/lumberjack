@@ -5,6 +5,7 @@ import uuid
 from django.test import RequestFactory, TestCase
 
 from apps.api.v1.jobs.views import CreateJobView, job_info_view, cancel_job_view, restart_job_view
+from apps.jobs.models import Job
 from tests.jobs.mixins import Mixin as JobMixin
 
 
@@ -33,6 +34,8 @@ class TestCreateJobView(TestCase, Mixin, JobMixin):
         response = CreateJobView.as_view()(request)
 
         self.assertEqual(201, response.status_code)
+        self.job.refresh_from_db()
+        self.assertTrue(Job.objects.filter(meta_data=self.data["meta_data"]).exists())
         mock_video_transcode_manager.assert_called()
 
     def test_api_should_fail_if_template_is_not_provided(self):
