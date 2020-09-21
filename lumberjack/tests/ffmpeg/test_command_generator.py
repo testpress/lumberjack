@@ -1,5 +1,6 @@
 import binascii
 import shutil
+import mock
 
 from django.test import SimpleTestCase, override_settings
 
@@ -11,7 +12,7 @@ class TestCommandGenerator(SimpleTestCase):
     def data(self):
         return {
             "id": "1232",
-            "input": "s3://media.testpress.in/institute/demo/videos/raw_video.mp4",
+            "input": "https://domain.com/path/videos/raw_video.mp4",
             "segmentLength": 10,
             "destination": "s3://media.testpress.in/institute/demo/videos/",
             "format": "HLS",
@@ -34,7 +35,8 @@ class TestCommandGenerator(SimpleTestCase):
     @override_settings(TRANSCODED_VIDEOS_PATH="tests/ffmpeg/data")
     def test_command_generator_should_convert_options_to_ffmpeg_command(self):
         ffmpeg_command = (
-            "ffmpeg -hide_banner -i - -c:a aac -c:v h264 -preset fast -s 360x640 -b:v 500000 -format hls "
+            "ffmpeg -hide_banner -i https://domain.com/path/videos/raw_video.mp4"
+            " -c:a aac -c:v h264 -preset fast -s 360x640 -b:v 500000 -format hls "
             "-hls_list_size 0 -hls_time 10 -hls_segment_filename tests/ffmpeg/data/1232/360p/video_%d.ts "
             "-hls_key_info_file tests/ffmpeg/data/1232/key/enc.keyinfo "
             "tests/ffmpeg/data/1232/360p/video.m3u8"
@@ -45,8 +47,19 @@ class TestCommandGenerator(SimpleTestCase):
     def test_ffmpeg_binary_name_should_be_correct_in_command_generator(self):
         self.assertEqual("ffmpeg -hide_banner", self.command_generator.ffmpeg_binary)
 
-    def test_input_argument_should_input_pipe(self):
-        self.assertDictEqual({"i": "-"}, self.command_generator.input_argument)
+    def test_input_argument_should_return_input_url(self):
+        self.assertDictEqual(
+            {"i": "https://domain.com/path/videos/raw_video.mp4"}, self.command_generator.input_argument
+        )
+
+    @mock.patch("apps.ffmpeg.inputs.boto3.Session.client")
+    def test_input_argument_should_be_signed_url_for_s3(self, mock_boto_client):
+        data = self.data
+        data["input"] = "s3://bucket/input.mp4"
+        mock_boto_client.return_value.generate_presigned_url.return_value = "hello"
+        command_generator = CommandGenerator(data)
+
+        self.assertDictEqual({"i": "hello"}, command_generator.input_argument)
 
     @override_settings(TRANSCODED_VIDEOS_PATH="tests/ffmpeg/data")
     def test_output_path_should_use_path_from_settings(self):
