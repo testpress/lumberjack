@@ -3,6 +3,7 @@ import binascii
 from django.conf import settings
 
 from apps.ffmpeg.utils import mkdir
+from .inputs import get_input_path
 
 
 class CommandGenerator(object):
@@ -29,7 +30,8 @@ class CommandGenerator(object):
 
     @property
     def input_argument(self):
-        return {"i": "-"}
+        path = self.options.get("input")
+        return {"i": get_input_path(path)}
 
     @property
     def local_path(self):
