@@ -14,6 +14,14 @@ class JobAdmin(DjangoObjectActions, admin.ModelAdmin):
     restart.short_description = "Restart this job"
     change_actions = ("restart",)
 
+    search_fields = ["id"]
+    list_filter = ["status", "template"]
+
+
+class OutputAdmin(admin.ModelAdmin):
+    search_fields = ["job__id"]
+    list_filter = ["status"]
+
 
 admin.site.register(Job, JobAdmin)
-admin.site.register(Output)
+admin.site.register(Output, OutputAdmin)
