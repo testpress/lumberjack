@@ -47,14 +47,14 @@ class Executor:
     def options(self):
         return {
             "stdout": subprocess.PIPE,
-            "stderr": subprocess.STDOUT,
+            "stderr": subprocess.PIPE,
             "universal_newlines": True,
         }
 
     def run(self):
         self.process.wait()
         if self.process.returncode != 0:
-            error = "\n".join(self.process.stdout.readlines())
+            error = "\n".join(self.process.stderr.readlines())
             raise Exception(error)
         self.stop_process()
 
