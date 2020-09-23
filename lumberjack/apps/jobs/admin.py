@@ -5,6 +5,15 @@ from apps.jobs.managers import VideoTranscodeManager
 from apps.jobs.models import Job, Output
 
 
+def stop_tasks(modeladmin, request, queryset):
+    for job in queryset:
+        transcode_manager = VideoTranscodeManager(job)
+        transcode_manager.stop()
+
+
+stop_tasks.short_description = "Stop selected jobs"
+
+
 class JobAdmin(DjangoObjectActions, admin.ModelAdmin):
     def restart(self, request, obj):
         transcode_manager = VideoTranscodeManager(obj)
@@ -13,6 +22,7 @@ class JobAdmin(DjangoObjectActions, admin.ModelAdmin):
     restart.label = "Restart"
     restart.short_description = "Restart this job"
     change_actions = ("restart",)
+    actions = [stop_tasks]
 
     search_fields = ["id"]
     list_filter = ["status", "template"]
