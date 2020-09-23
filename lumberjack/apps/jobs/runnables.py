@@ -44,14 +44,14 @@ class VideoTranscoderRunnable(CeleryRunnable):
         if self.is_job_status_not_updated():
             self.update_job_start_time_and_initial_status()
             self.job.notify_webhook()
-        self.update_output_status(Output.PROCESSING)
+        self.update_output_status_and_time(Output.PROCESSING, start=now())
 
         try:
             self.start_transcoding()
-            self.update_output_status(Output.COMPLETED)
+            self.update_output_status_and_time(Output.COMPLETED, end=now())
         except Exception as error:
             self.save_exception(error)
-            self.update_output_status(Output.ERROR)
+            self.update_output_status_and_time(Output.ERROR, end=now())
             self.stop_job_and_notify()
 
     def initialize(self):
@@ -66,7 +66,13 @@ class VideoTranscoderRunnable(CeleryRunnable):
         self.job.start = now()
         self.job.save()
 
-    def update_output_status(self, status):
+    def update_output_status_and_time(self, status, start=None, end=None):
+        if start:
+            self.output.start = start
+
+        if end:
+            self.output.end = end
+
         self.output.status = status
         self.output.save()
 

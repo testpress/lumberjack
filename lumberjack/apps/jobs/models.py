@@ -100,7 +100,7 @@ class AbstractOutput(TimeStampedModel):
         return self.name
 
 
-class Output(AbstractOutput):
+class Output(AbstractOutput, TimeFramedModel):
     NOT_STARTED = "not_started"
     QUEUED = "queued"
     PROCESSING = "processing"
