@@ -26,7 +26,7 @@ class Manager:
         try:
             self.executor.run()
         except FFMpegException as e:
-            raise FFMpegException(self.event_source.log)
+            raise FFMpegException(self.event_source.read_log())
 
     def create_observers(self):
         self.progress_observer = ProgressObserver(self.monitor)
