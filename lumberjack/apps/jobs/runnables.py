@@ -2,7 +2,7 @@ from django.shortcuts import get_object_or_404
 from django.utils.timezone import now
 
 from lumberjack.celery import app
-from apps.ffmpeg.main import Manager
+from apps.ffmpeg.main import Manager, FFMpegException
 from apps.ffmpeg.outputs import OutputFactory
 from apps.jobs.models import Job, Output
 
@@ -49,7 +49,7 @@ class VideoTranscoderRunnable(CeleryRunnable):
         try:
             self.start_transcoding()
             self.update_output_status_and_time(Output.COMPLETED, end=now())
-        except Exception as error:
+        except FFMpegException as error:
             self.save_exception(error)
             self.update_output_status_and_time(Output.ERROR, end=now())
             self.stop_job_and_notify()

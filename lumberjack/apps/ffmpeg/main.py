@@ -55,7 +55,7 @@ class Executor:
         self.process.wait()
         if self.process.returncode != 0:
             error = "\n".join(self.process.stdout.readlines())
-            raise Exception(error)
+            raise FFMpegException(error)
         self.stop_process()
 
     def start_process(self):
@@ -67,3 +67,7 @@ class Executor:
     @property
     def process(self):
         return self._process
+
+
+class FFMpegException(Exception):
+    pass

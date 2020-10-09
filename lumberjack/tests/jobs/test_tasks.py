@@ -12,6 +12,7 @@ from django.conf import settings
 from apps.jobs.runnables import VideoTranscoderRunnable, ManifestGeneratorRunnable
 from apps.jobs.tasks import PostDataToWebhookTask
 from apps.jobs.models import Job
+from apps.ffmpeg.main import FFMpegException
 from .mixins import Mixin
 
 
@@ -60,7 +61,7 @@ class TestVideoTranscoder(Mixin, TestCase):
         self.assertEqual(self.output.progress, 20)
         self.assertEqual(self.job.progress, 20)
 
-    @mock.patch("apps.jobs.runnables.Manager", **{"return_value.run.side_effect": Exception()})
+    @mock.patch("apps.jobs.runnables.Manager", **{"return_value.run.side_effect": FFMpegException()})
     @mock.patch("apps.jobs.managers.app.GroupResult")
     def test_task_should_be_stopped_in_case_of_exception(self, mock_group_result, mock_ffmpeg_manager):
         self.video_transcoder.do_run()
