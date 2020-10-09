@@ -23,7 +23,10 @@ class Manager:
         self.event_source = EventSource(self.executor.process)
         self.register_observers()
         self.event_source.start()
-        self.executor.run()
+        try:
+            self.executor.run()
+        except FFMpegException as e:
+            raise FFMpegException(self.event_source.log)
 
     def create_observers(self):
         self.progress_observer = ProgressObserver(self.monitor)
@@ -54,8 +57,7 @@ class Executor:
     def run(self):
         self.process.wait()
         if self.process.returncode != 0:
-            error = "\n".join(self.process.stdout.readlines())
-            raise FFMpegException(error)
+            raise FFMpegException
         self.stop_process()
 
     def start_process(self):

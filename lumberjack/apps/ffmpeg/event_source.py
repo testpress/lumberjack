@@ -87,6 +87,7 @@ class EventSource(Observable):
         self.time = 0
         self.process = process
         self.thread = threading.Thread(target=self.run)
+        self.log = ""
 
     def run(self):
         while True:
@@ -102,6 +103,7 @@ class EventSource(Observable):
         while True:
             events = []
             log = self.process.stdout.readline().strip()
+            self.log += log
             if self.is_stdout_finished(log):
                 return False
 
