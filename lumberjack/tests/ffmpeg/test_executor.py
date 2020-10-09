@@ -4,10 +4,10 @@ from os import path
 
 from django.test import SimpleTestCase, override_settings
 
-from apps.ffmpeg.main import Executor
+from apps.ffmpeg.main import Executor, Manager, FFMpegException
 
 
-class TestExecutor(SimpleTestCase):
+class Mixin:
     @property
     def data(self):
         return {
@@ -23,13 +23,15 @@ class TestExecutor(SimpleTestCase):
             },
             "output": {
                 "name": "360p",
-                "url": "/institute/demo/videos/transcoded",
+                "url": "tests/ffmpeg/data/test/1232/360p",
                 "local_path": "tests/ffmpeg/data/test",
                 "video": {"width": 360, "height": 640, "codec": "h264", "bitrate": 500000},
                 "audio": {"codec": "aac", "bitrate": "48000"},
             },
         }
 
+
+class TestExecutor(Mixin, SimpleTestCase):
     @override_settings(TRANSCODED_VIDEOS_PATH="tests/ffmpeg/data")
     def test_process_should_return_subprocess(self):
         executor = Executor(self.data)
@@ -55,3 +57,20 @@ class TestExecutor(SimpleTestCase):
     def tearDownClass(cls):
         shutil.rmtree("tests/ffmpeg/data/test")
         shutil.rmtree("tests/ffmpeg/data/1232")
+
+
+class TestManager(Mixin, SimpleTestCase):
+    @override_settings(TRANSCODED_VIDEOS_PATH="tests/ffmpeg/data/test")
+    def test_exception_should_be_raised_with_log_details_in_case_of_transcode_error(self):
+        data = self.data
+        data["input"] = "tests/ffmpeg/data/corrup_video.mp4"
+        manager = Manager(data)
+
+        with self.assertRaisesMessage(
+            FFMpegException, "tests/ffmpeg/data/corrup_video.mp4: No such file or directory"
+        ):
+            manager.run()
+
+    @classmethod
+    def tearDownClass(cls):
+        shutil.rmtree("tests/ffmpeg/data/test")
