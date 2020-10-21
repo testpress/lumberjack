@@ -101,7 +101,7 @@ class VideoTranscoderRunnable(CeleryRunnable):
             task.revoke(terminate=True)
 
     def is_job_status_error(self):
-        return Job.objects.get(id=self.job.id).status != Job.ERROR
+        return Job.objects.get(id=self.job.id).status == Job.ERROR
 
     def set_error_status_and_notify(self):
         self.job.status = Job.ERROR
