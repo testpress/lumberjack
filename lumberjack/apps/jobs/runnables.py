@@ -52,7 +52,9 @@ class VideoTranscoderRunnable(CeleryRunnable):
         except FFMpegException as error:
             self.save_exception(error)
             self.update_output_status_and_time(Output.ERROR, end=now())
-            self.stop_job_and_notify()
+            self.stop_job()
+            if not self.is_job_status_error():
+                self.set_error_status_and_notify()
 
     def initialize(self):
         self.job = Job.objects.get(id=self.job_id)
@@ -93,13 +95,18 @@ class VideoTranscoderRunnable(CeleryRunnable):
         self.output.error_message = error
         self.output.save()
 
-    def stop_job_and_notify(self):
-        self.job.status = Job.ERROR
-        self.job.save()
-        self.job.notify_webhook()
+    def stop_job(self):
         task = app.GroupResult.restore(str(self.job.background_task_id))
         if task:
             task.revoke(terminate=True)
+
+    def is_job_status_error(self):
+        return Job.objects.get(id=self.job.id).status != Job.ERROR
+
+    def set_error_status_and_notify(self):
+        self.job.status = Job.ERROR
+        self.job.save()
+        self.job.notify_webhook()
 
 
 class ManifestGeneratorRunnable(CeleryRunnable):
