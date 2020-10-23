@@ -1,6 +1,7 @@
 import threading
 import abc
 import re
+from io import StringIO
 
 from apps.ffmpeg.outputs import OutputFactory
 
@@ -87,6 +88,7 @@ class EventSource(Observable):
         self.time = 0
         self.process = process
         self.thread = threading.Thread(target=self.run)
+        self.log = StringIO()
 
     def run(self):
         while True:
@@ -102,6 +104,7 @@ class EventSource(Observable):
         while True:
             events = []
             log = self.process.stdout.readline().strip()
+            self.log.write(log)
             if self.is_stdout_finished(log):
                 return False
 
@@ -144,3 +147,6 @@ class EventSource(Observable):
     def stop(self):
         if self.thread.is_alive():
             self.thread.join()
+
+    def read_log(self):
+        return self.log.getvalue()
