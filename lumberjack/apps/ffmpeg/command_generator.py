@@ -32,8 +32,14 @@ class CommandGenerator(object):
     @property
     def input_argument(self):
         path = self.options.get("input")
+        FIVE_MINUTES = 300
         return OrderedDict(
-            [("reconnect", 1), ("reconnect_streamed", 1), ("reconnect_delay_max", 300), ("i", get_input_path(path))]
+            [
+                ("reconnect", 1),
+                ("reconnect_streamed", 1),
+                ("reconnect_delay_max", FIVE_MINUTES),
+                ("i", get_input_path(path)),
+            ]
         )
 
     @property
