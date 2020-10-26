@@ -1,4 +1,5 @@
 import binascii
+from collections import OrderedDict
 
 from django.conf import settings
 
@@ -31,7 +32,9 @@ class CommandGenerator(object):
     @property
     def input_argument(self):
         path = self.options.get("input")
-        return {"i": get_input_path(path)}
+        return OrderedDict(
+            [("reconnect", 1), ("reconnect_streamed", 1), ("reconnect_delay_max", 300), ("i", get_input_path(path))]
+        )
 
     @property
     def local_path(self):
