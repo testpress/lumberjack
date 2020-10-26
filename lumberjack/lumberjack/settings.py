@@ -13,6 +13,11 @@ import os
 from pathlib import Path
 from django.core.exceptions import ImproperlyConfigured
 
+import sentry_sdk
+from sentry_sdk.integrations.django import DjangoIntegration
+from sentry_sdk.integrations.celery import CeleryIntegration
+from sentry_sdk.integrations.redis import RedisIntegration
+
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
 BASE_DIR = Path(__file__).resolve(strict=True).parent.parent
 
@@ -147,3 +152,9 @@ CELERY_TASK_ROUTES = {
 }
 
 REST_FRAMEWORK = {"DEFAULT_PAGINATION_CLASS": "rest_framework.pagination.LimitOffsetPagination", "PAGE_SIZE": 100}
+
+sentry_sdk.init(
+    dsn=get_env_variable("SENTRY_URL"),
+    integrations=[DjangoIntegration(), CeleryIntegration(), RedisIntegration()],
+    send_default_pii=True,
+)
