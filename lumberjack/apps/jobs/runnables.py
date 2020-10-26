@@ -61,7 +61,7 @@ class VideoTranscoderRunnable(CeleryRunnable):
                 self.set_error_status_and_notify()
         except SoftTimeLimitExceeded:
             self.set_output_status_cancelled()
-            self.stop_process()
+            transcoder.stop()
 
     def initialize(self):
         self.job = Job.objects.get(id=self.job_id)
@@ -118,9 +118,6 @@ class VideoTranscoderRunnable(CeleryRunnable):
         self.job.status = Job.ERROR
         self.job.save()
         self.job.notify_webhook()
-
-    def stop_process(self):
-        self.ffmpeg_manager.stop()
 
 
 class ManifestGeneratorRunnable(CeleryRunnable):
