@@ -12,7 +12,7 @@ class CeleryTask(Task):
     runnable = None
 
     def run(self, *args, **kwargs):
-        self.runnable(*args, **kwargs).run()
+        self.runnable(*args, **kwargs, task_id=self.request.id).run()
 
 
 class VideoTranscoder(CeleryTask):
