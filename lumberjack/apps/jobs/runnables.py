@@ -108,7 +108,7 @@ class VideoTranscoderRunnable(CeleryRunnable):
     def stop_job(self):
         group_tasks = app.GroupResult.restore(str(self.job.background_task_id))
         for task in group_tasks:
-            if task.id != self.task_id:
+            if task.id != self.task_id:  # Skip killing current task as it is going to be stopped anyway.
                 task.revoke(terminate=True, signal="SIGUSR1")
 
     def is_job_status_error(self):

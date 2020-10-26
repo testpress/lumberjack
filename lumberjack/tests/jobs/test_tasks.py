@@ -5,13 +5,14 @@ from requests.exceptions import ConnectionError
 from moto import mock_s3
 import boto3
 from smart_open import parse_uri
+from celery.exceptions import SoftTimeLimitExceeded
 
 from django.test import TestCase
 from django.conf import settings
 
 from apps.jobs.runnables import VideoTranscoderRunnable, ManifestGeneratorRunnable
 from apps.jobs.tasks import PostDataToWebhookTask
-from apps.jobs.models import Job
+from apps.jobs.models import Job, Output
 from apps.ffmpeg.main import FFMpegException
 from .mixins import Mixin
 
@@ -45,7 +46,9 @@ class TestVideoTranscoder(Mixin, TestCase):
         self.prepare_video_transcoder()
 
     def prepare_video_transcoder(self):
-        self.video_transcoder = VideoTranscoderRunnable(job_id=self.output.job.id, output_id=self.output.id)
+        self.video_transcoder = VideoTranscoderRunnable(
+            job_id=self.output.job.id, output_id=self.output.id, task_id=13
+        )
         self.video_transcoder.output = self.output
         self.video_transcoder.job = self.output.job
 
@@ -64,10 +67,24 @@ class TestVideoTranscoder(Mixin, TestCase):
     @mock.patch("apps.jobs.runnables.Manager", **{"return_value.run.side_effect": FFMpegException()})
     @mock.patch("apps.jobs.managers.app.GroupResult")
     def test_task_should_be_stopped_in_case_of_exception(self, mock_group_result, mock_ffmpeg_manager):
+        task_mock = mock.MagicMock()
+        mock_group_result.restore.return_value = [task_mock]
         self.video_transcoder.do_run()
 
-        mock_group_result.restore().revoke.assert_called()
+        task_mock.revoke.assert_called_with(terminate=True, signal="SIGUSR1")
         self.assertEqual(self.video_transcoder.job.status, Job.ERROR)
+
+    @mock.patch("apps.jobs.runnables.Manager", **{"return_value.run.side_effect": SoftTimeLimitExceeded()})
+    @mock.patch("apps.jobs.managers.app.GroupResult")
+    def test_task_should_stop_ffmpeg_process_in_case_of_soft_time_limit_exception(
+        self, mock_group_result, mock_ffmpeg_manager
+    ):
+        task_mock = mock.MagicMock()
+        mock_group_result.restore.return_value = [task_mock]
+        self.video_transcoder.do_run()
+
+        self.assertEqual(self.video_transcoder.output.status, Output.CANCELLED)
+        mock_ffmpeg_manager().stop.assert_called()
 
 
 class TestManifestGenerator(Mixin, TestCase):
