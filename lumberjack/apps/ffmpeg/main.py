@@ -25,6 +25,9 @@ class Manager:
         self.event_source.start()
         self.executor.run()
 
+    def stop(self):
+        self.executor.stop_process()
+
     def create_observers(self):
         self.progress_observer = ProgressObserver(self.monitor)
         self.output_observer = OutputObserver(self.options.get("output")["url"], self.local_path)
@@ -55,6 +58,7 @@ class Executor:
         self.process.wait()
         if self.process.returncode != 0:
             error = "\n".join(self.process.stdout.readlines())
+            self.stop_process()
             raise FFMpegException(error)
         self.stop_process()
 

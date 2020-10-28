@@ -1,3 +1,5 @@
+from celery.exceptions import SoftTimeLimitExceeded
+
 from django.shortcuts import get_object_or_404
 from django.utils.timezone import now
 
@@ -57,6 +59,9 @@ class VideoTranscoderRunnable(CeleryRunnable):
             self.stop_job()
             if not self.is_job_status_error():
                 self.set_error_status_and_notify()
+        except SoftTimeLimitExceeded:
+            self.set_output_status_cancelled()
+            transcoder.stop()
 
     def initialize(self):
         self.job = Job.objects.get(id=self.job_id)
@@ -96,10 +101,15 @@ class VideoTranscoderRunnable(CeleryRunnable):
         self.output.error_message = error
         self.output.save()
 
+    def set_output_status_cancelled(self):
+        self.output.status = Output.CANCELLED
+        self.output.save()
+
     def stop_job(self):
-        task = app.GroupResult.restore(str(self.job.background_task_id))
-        if task:
-            task.revoke(terminate=True)
+        group_tasks = app.GroupResult.restore(str(self.job.background_task_id))
+        for task in group_tasks:
+            if task.id != self.task_id:  # Skip killing current task as it is going to be stopped anyway.
+                task.revoke(terminate=True, signal="SIGUSR1")
 
     def is_job_status_error(self):
         return Job.objects.get(id=self.job.id).status == Job.ERROR
