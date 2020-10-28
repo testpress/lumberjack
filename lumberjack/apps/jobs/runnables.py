@@ -46,8 +46,10 @@ class VideoTranscoderRunnable(CeleryRunnable):
             self.job.notify_webhook()
         self.update_output_status_and_time(Output.PROCESSING, start=now())
 
+        transcoder = self.initialize_transcoder()
+
         try:
-            self.start_transcoding()
+            transcoder.run()
             self.update_output_status_and_time(Output.COMPLETED, end=now())
         except FFMpegException as error:
             self.save_exception(error)
@@ -78,9 +80,8 @@ class VideoTranscoderRunnable(CeleryRunnable):
         self.output.status = status
         self.output.save()
 
-    def start_transcoding(self):
-        ffmpeg_manager = Manager(self.output.settings, self.update_progress)
-        ffmpeg_manager.run()
+    def initialize_transcoder(self):
+        return Manager(self.output.settings, self.update_progress)
 
     def is_multiple_of_five(self, percentage):
         return (percentage % 5) == 0 and self.output.progress != percentage
