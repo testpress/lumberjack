@@ -12,7 +12,7 @@ class CommandGenerator(object):
         self.options = options
 
     def generate(self):
-        arguments = " ".join(self.to_args(**self.input_argument, **self.media_options))
+        arguments = " ".join(self.to_args(**self.input_argument, **self.media_options, **self.output_arguments))
         command = self.ffmpeg_binary + " " + arguments + " " + self.output_path
         return command
 
@@ -45,6 +45,10 @@ class CommandGenerator(object):
     @property
     def local_path(self):
         return "{}/{}".format(settings.TRANSCODED_VIDEOS_PATH, self.options.get("id"))
+
+    @property
+    def output_arguments(self):
+        return {"max_muxing_queue_size": 9999}
 
     @property
     def output_path(self):
