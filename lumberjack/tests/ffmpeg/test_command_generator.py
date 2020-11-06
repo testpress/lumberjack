@@ -1,6 +1,7 @@
 import binascii
 import shutil
 import mock
+from collections import OrderedDict
 
 from django.test import SimpleTestCase, override_settings
 
@@ -35,10 +36,11 @@ class TestCommandGenerator(SimpleTestCase):
     @override_settings(TRANSCODED_VIDEOS_PATH="tests/ffmpeg/data")
     def test_command_generator_should_convert_options_to_ffmpeg_command(self):
         ffmpeg_command = (
-            "ffmpeg -hide_banner -i https://domain.com/path/videos/raw_video.mp4"
+            "ffmpeg -hide_banner -reconnect 1 -reconnect_streamed 1 -reconnect_delay_max 300 "
+            "-i https://domain.com/path/videos/raw_video.mp4"
             " -c:a aac -c:v h264 -preset fast -s 360x640 -b:v 500000 -format hls "
             "-hls_list_size 0 -hls_time 10 -hls_segment_filename tests/ffmpeg/data/1232/360p/video_%d.ts "
-            "-hls_key_info_file tests/ffmpeg/data/1232/key/enc.keyinfo "
+            "-hls_key_info_file tests/ffmpeg/data/1232/key/enc.keyinfo -max_muxing_queue_size 9999 "
             "tests/ffmpeg/data/1232/360p/video.m3u8"
         )
 
@@ -48,9 +50,15 @@ class TestCommandGenerator(SimpleTestCase):
         self.assertEqual("ffmpeg -hide_banner", self.command_generator.ffmpeg_binary)
 
     def test_input_argument_should_return_input_url(self):
-        self.assertDictEqual(
-            {"i": "https://domain.com/path/videos/raw_video.mp4"}, self.command_generator.input_argument
+        input_args = OrderedDict(
+            [
+                ("reconnect", 1),
+                ("reconnect_streamed", 1),
+                ("reconnect_delay_max", 300),
+                ("i", "https://domain.com/path/videos/raw_video.mp4"),
+            ]
         )
+        self.assertDictEqual(input_args, self.command_generator.input_argument)
 
     @mock.patch("apps.ffmpeg.inputs.boto3.Session.client")
     def test_input_argument_should_be_signed_url_for_s3(self, mock_boto_client):
@@ -59,7 +67,10 @@ class TestCommandGenerator(SimpleTestCase):
         mock_boto_client.return_value.generate_presigned_url.return_value = "hello"
         command_generator = CommandGenerator(data)
 
-        self.assertDictEqual({"i": "hello"}, command_generator.input_argument)
+        input_args = OrderedDict(
+            [("reconnect", 1), ("reconnect_streamed", 1), ("reconnect_delay_max", 300), ("i", "hello"),]
+        )
+        self.assertDictEqual(input_args, command_generator.input_argument)
 
     @override_settings(TRANSCODED_VIDEOS_PATH="tests/ffmpeg/data")
     def test_output_path_should_use_path_from_settings(self):
