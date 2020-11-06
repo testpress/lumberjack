@@ -1,6 +1,8 @@
 import subprocess
 import shlex
 
+from sentry_sdk import configure_scope, capture_message
+
 from django.conf import settings
 
 from apps.ffmpeg.command_generator import CommandGenerator
@@ -61,6 +63,18 @@ class Executor:
             self.stop_process()
             raise FFMpegException(error)
         self.stop_process()
+        if self.is_process_running():
+            self.log_process_details_to_sentry()
+
+    def is_process_running(self):
+        return self.process.poll() is None
+
+    def log_process_details_to_sentry(self):
+        with configure_scope() as scope:
+            scope.set_extra("FFMpeg Command", self.command)
+            scope.set_extra("Process Return code", self.process.returncode)
+            scope.set_extra("Process PID", self.process.pid)
+            capture_message("FFMpeg process Not terminated")
 
     def start_process(self):
         self._process = subprocess.Popen(shlex.split(self.command), **self.options)
