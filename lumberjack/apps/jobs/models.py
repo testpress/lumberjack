@@ -53,20 +53,12 @@ class Job(TimeStampedModel, TimeFramedModel, JobNotifierMixin):
 
     @property
     def job_info(self):
-        transcoding_duration = None
-        if self.start and self.end:
-            transcoding_duration = self.end - self.start
-
         return {
             "id": self.id,
             "status": self.get_status_display(),
             "settings": self.settings,
             "input_url": self.input_url,
             "output_url": self.output_url,
-            "start_time": self.start,
-            "end_time": self.end,
-            "transcoding_duration": transcoding_duration,
-            "submission_time": self.created,
         }
 
     def populate_settings(self):

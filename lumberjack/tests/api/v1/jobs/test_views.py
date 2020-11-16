@@ -1,10 +1,8 @@
 import json
 import mock
 import uuid
-from datetime import timedelta
 
 from django.test import RequestFactory, TestCase
-from django.utils.timezone import now
 
 from apps.api.v1.jobs.views import CreateJobView, job_info_view, cancel_job_view, restart_job_view
 from apps.jobs.models import Job
@@ -64,9 +62,6 @@ class TestCreateJobView(TestCase, Mixin, JobMixin):
 class TestJobInfoView(TestCase, JobMixin):
     def setUp(self):
         self.factory = RequestFactory()
-        self.job.start = now()
-        self.job.end = now() + timedelta(days=1)
-        self.job.save()
 
     def test_api_should_return_job_info_for_job(self):
         request = self.factory.get("/api/v1/jobs/%s" % self.job.id)
@@ -80,15 +75,6 @@ class TestJobInfoView(TestCase, JobMixin):
         response = job_info_view(request, uuid.uuid4())
 
         self.assertEqual(404, response.status_code)
-
-    def test_api_should_have_transcoding_details(self):
-        request = self.factory.get("/api/v1/jobs/%s" % self.job.id)
-        response = job_info_view(request, self.job.id)
-
-        self.assertEqual(response.data["start_time"], self.job.start)
-        self.assertEqual(response.data["end_time"], self.job.end)
-        self.assertEqual(response.data["submission_time"], self.job.created)
-        self.assertEqual(response.data["transcoding_duration"], self.job.end - self.job.start)
 
 
 class TestCancelJobView(TestCase, JobMixin):
