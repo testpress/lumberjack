@@ -21,7 +21,7 @@ jobs:
     steps:
       - checkout
       - restore_cache:
-          key: deps1-{{ .Branch }}-{{ checksum "requirements.txt" }}
+          key: deps1-{{ .Branch }}-{{ checksum "lumberjack/requirements.txt" }}
       - run:
           command: |
             python3 -m venv venv
@@ -36,7 +36,7 @@ jobs:
           name: Install FFMPEG
           command: sudo apt-get install -y ffmpeg
       - save_cache:
-          key: deps1-{{ .Branch }}-{{ checksum "requirements.txt" }}
+          key: deps1-{{ .Branch }}-{{ checksum "lumberjack/requirements.txt" }}
           paths:
             - "venv"
       - run:
