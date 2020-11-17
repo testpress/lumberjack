@@ -3,17 +3,6 @@ jobs:
   build:
     docker:
       - image: circleci/python:3.7
-        environment:
-          - SECRET_KEY: "@uj8-o_y6dwa#li1i4m%8+kxa1i5f_)ve&&^q08p&4bo50=bbm"
-          - AWS_ACCESS_KEY_ID: "abcdefg"
-          - AWS_SECRET_ACCESS_KEY: "P3y2lhcVRjzzB2VEBFd/yQDQVPf27jpzrrOTfy"
-          - AWS_STORAGE_BUCKET_NAME: "media.testpress.in"
-          - AWS_S3_REGION_CODE: "us-east-1"
-          - TRANSCODED_VIDEOS_PATH: "/Users/karthik/Downloads/transcoded_videos"
-          - SENTRY_URL: ""
-          - DATABASE_NAME: lumberjack
-          - DATABASE_USER: lumberjack
-          - DATABASE_USER_PASSWORD: lumberjack1$
       - image: circleci/postgres:9.6.7
         environment:
           POSTGRES_DB: lumberjack
