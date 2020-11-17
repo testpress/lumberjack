@@ -1,5 +1,9 @@
+from datetime import timedelta
+
 import factory
 from factory.django import DjangoModelFactory
+
+from django.utils.timezone import now
 
 
 class JobFactory(DjangoModelFactory):
@@ -8,6 +12,8 @@ class JobFactory(DjangoModelFactory):
 
     input_url = "s3://bucket/key"
     output_url = "s3://bucket/output_key/video.m3u8"
+    start = now()
+    end = now() + timedelta(days=1)
 
 
 class OutputFactory(DjangoModelFactory):

@@ -76,6 +76,15 @@ class TestJobInfoView(TestCase, JobMixin):
 
         self.assertEqual(404, response.status_code)
 
+    def test_api_should_have_transcoding_details(self):
+        request = self.factory.get("/api/v1/jobs/%s" % self.job.id)
+        response = job_info_view(request, self.job.id)
+
+        self.assertEqual(response.data["id"], str(self.job.id))
+        self.assertEqual(response.data["start_time"], self.job.start)
+        self.assertEqual(response.data["end_time"], self.job.end)
+        self.assertEqual(response.data["submission_time"], self.job.created)
+
 
 class TestCancelJobView(TestCase, JobMixin):
     def setUp(self):

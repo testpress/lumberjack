@@ -9,6 +9,7 @@ from celery.exceptions import SoftTimeLimitExceeded
 
 from django.test import TestCase
 from django.conf import settings
+from django.core.serializers.json import DjangoJSONEncoder
 
 from apps.jobs.runnables import VideoTranscoderRunnable, ManifestGeneratorRunnable
 from apps.jobs.tasks import PostDataToWebhookTask
@@ -137,27 +138,25 @@ class TestManifestGenerator(Mixin, TestCase):
         return conn.Object(s3_path.bucket_id, s3_path.key_id).get()["Body"]
 
 
-class TestPostDataToWebhook(TestCase):
-    @property
-    def data(self):
-        return {"job_id": 1234, "status": "Completed"}
-
+class TestPostDataToWebhook(Mixin, TestCase):
     @property
     def url(self):
         return "http://domain.com/webhook/"
 
     @mock.patch("apps.jobs.tasks.requests")
     def test_data_should_be_posted_to_webhook(self, requests_mock):
-        PostDataToWebhookTask.run(data=self.data, url=self.url)
+        PostDataToWebhookTask.run(data=self.job.job_info, url=self.url)
 
         requests_mock.post.assert_called_with(
-            "http://domain.com/webhook/", data=json.dumps(self.data), headers={"Content-Type": "application/json"}
+            "http://domain.com/webhook/",
+            data=json.dumps(self.job.job_info, cls=DjangoJSONEncoder),
+            headers={"Content-Type": "application/json"},
         )
 
     @responses.activate
     @mock.patch("apps.jobs.tasks.PostDataToWebhookTask.retry")
     def test_error(self, retry_mock):
         responses.add(responses.POST, self.url, body=ConnectionError("Gateway Error"))
-        PostDataToWebhookTask.run(data=self.data, url=self.url)
+        PostDataToWebhookTask.run(data=self.job.job_info, url=self.url)
 
         retry_mock.assert_called()
