@@ -80,6 +80,7 @@ class TestJobInfoView(TestCase, JobMixin):
         request = self.factory.get("/api/v1/jobs/%s" % self.job.id)
         response = job_info_view(request, self.job.id)
 
+        self.assertEqual(response.data["id"], str(self.job.id))
         self.assertEqual(response.data["start_time"], self.job.start)
         self.assertEqual(response.data["end_time"], self.job.end)
         self.assertEqual(response.data["submission_time"], self.job.created)

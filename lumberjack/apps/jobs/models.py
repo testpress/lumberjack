@@ -54,7 +54,7 @@ class Job(TimeStampedModel, TimeFramedModel, JobNotifierMixin):
     @property
     def job_info(self):
         return {
-            "id": self.id.hex,
+            "id": str(self.id),
             "status": self.get_status_display(),
             "settings": self.settings,
             "input_url": self.input_url,
