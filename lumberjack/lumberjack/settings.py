@@ -153,8 +153,9 @@ CELERY_TASK_ROUTES = {
 
 REST_FRAMEWORK = {"DEFAULT_PAGINATION_CLASS": "rest_framework.pagination.LimitOffsetPagination", "PAGE_SIZE": 100}
 
-sentry_sdk.init(
-    dsn=get_env_variable("SENTRY_URL"),
-    integrations=[DjangoIntegration(), CeleryIntegration(), RedisIntegration()],
-    send_default_pii=True,
-)
+if os.environ.get("SENTRY_URL", None):
+    sentry_sdk.init(
+        dsn=get_env_variable("SENTRY_URL"),
+        integrations=[DjangoIntegration(), CeleryIntegration(), RedisIntegration()],
+        send_default_pii=True,
+    )

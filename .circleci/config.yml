@@ -1,0 +1,39 @@
+version: 2
+jobs:
+  build:
+    docker:
+      - image: circleci/python:3.7
+      - image: circleci/postgres:9.6.7
+        environment:
+          POSTGRES_DB: lumberjack
+          POSTGRES_USER: lumberjack
+    steps:
+      - checkout
+      - restore_cache:
+          key: deps1-{{ .Branch }}-{{ checksum "lumberjack/requirements.txt" }}
+      - run:
+          command: |
+            python3 -m venv venv
+            . venv/bin/activate
+            pip install -r lumberjack/requirements.txt
+      - run:
+          name: Add apt repo for ffmpeg
+          command: |
+            sudo apt-get install software-properties-common
+            sudo apt-get update
+      - run:
+          name: Install FFMPEG
+          command: sudo apt-get install -y ffmpeg
+      - save_cache:
+          key: deps1-{{ .Branch }}-{{ checksum "lumberjack/requirements.txt" }}
+          paths:
+            - "venv"
+      - run:
+          name: Running tests
+          command: |
+            . venv/bin/activate
+            cd lumberjack/
+            python3 manage.py test
+      - store_artifacts:
+          path: test-reports/
+          destination: python_app
