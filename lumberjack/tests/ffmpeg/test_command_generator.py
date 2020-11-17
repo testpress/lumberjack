@@ -38,7 +38,7 @@ class TestCommandGenerator(SimpleTestCase):
         ffmpeg_command = (
             "ffmpeg -hide_banner -reconnect 1 -reconnect_streamed 1 -reconnect_delay_max 300 "
             "-i https://domain.com/path/videos/raw_video.mp4"
-            " -c:a aac -c:v h264 -preset fast -s 360x640 -b:v 500000 -format hls "
+            " -c:a aac -b:a 48000 -c:v h264 -preset fast -s 360x640 -b:v 500000 -format hls "
             "-hls_list_size 0 -hls_time 10 -hls_segment_filename tests/ffmpeg/data/1232/360p/video_%d.ts "
             "-hls_key_info_file tests/ffmpeg/data/1232/key/enc.keyinfo -max_muxing_queue_size 9999 "
             "tests/ffmpeg/data/1232/360p/video.m3u8"

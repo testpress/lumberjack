@@ -84,7 +84,12 @@ class MediaOptions(object):
         return options
 
     def audio_options(self):
-        return {"c:a": self.audio.get("codec", self.DEFAULT_AUDIO_CODEC)}
+        options = {"c:a": self.audio.get("codec", self.DEFAULT_AUDIO_CODEC)}
+
+        if self.audio.get("bitrate"):
+            options["b:a"] = self.audio.get("bitrate")
+
+        return options
 
     @property
     def all(self) -> dict:
