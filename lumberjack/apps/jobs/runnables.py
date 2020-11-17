@@ -161,7 +161,9 @@ class ManifestGeneratorRunnable(CeleryRunnable):
         self.manifest_content = content
 
     def complete_job(self):
-        Job.objects.filter(id=self.job.id).update(status=Job.COMPLETED, end=now())
+        self.job.status = Job.COMPLETED
+        self.job.end = now()
+        self.job.save(update_fields=["status", "end"])
 
     def notify_webhook(self):
         self.job.refresh_from_db()

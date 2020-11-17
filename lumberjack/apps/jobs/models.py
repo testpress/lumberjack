@@ -49,7 +49,7 @@ class Job(TimeStampedModel, TimeFramedModel, JobNotifierMixin):
     def update_progress(self):
         progress_dict = self.outputs.aggregate(models.Avg("progress"))
         self.progress = progress_dict["progress__avg"]
-        self.save()
+        self.save(update_fields=["progress"])
 
     @property
     def job_info(self):
