@@ -27,6 +27,15 @@ jobs:
             python3 -m venv venv
             . venv/bin/activate
             pip install -r lumberjack/requirements.txt
+      - run:
+          name: Add apt repo for ffmpeg
+          command: |
+            sudo apt-get install software-properties-common
+            sudo add-apt-repository -y ppa:jonathonf/ffmpeg-4
+            sudo apt-get update
+      - run:
+          name: Install FFMPEG
+          command: sudo apt-get install -y ffmpeg
       - save_cache:
           key: deps1-{{ .Branch }}-{{ checksum "requirements.txt" }}
           paths:
