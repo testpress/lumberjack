@@ -67,9 +67,7 @@ class TestCommandGenerator(SimpleTestCase):
         mock_boto_client.return_value.generate_presigned_url.return_value = "hello"
         command_generator = CommandGenerator(data)
 
-        input_args = OrderedDict(
-            [("reconnect", 1), ("reconnect_streamed", 1), ("reconnect_delay_max", 300), ("i", "hello"),]
-        )
+        input_args = OrderedDict([("i", "hello")])
         self.assertDictEqual(input_args, command_generator.input_argument)
 
     @override_settings(TRANSCODED_VIDEOS_PATH="tests/ffmpeg/data")

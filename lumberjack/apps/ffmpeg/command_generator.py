@@ -33,14 +33,13 @@ class CommandGenerator(object):
     def input_argument(self):
         path = self.options.get("input")
         FIVE_MINUTES = 300
-        return OrderedDict(
-            [
-                ("reconnect", 1),
-                ("reconnect_streamed", 1),
-                ("reconnect_delay_max", FIVE_MINUTES),
-                ("i", get_input_path(path)),
-            ]
-        )
+        input_arguments = OrderedDict()
+
+        if get_input_path(path).startswith("http"):
+            input_arguments.update({"reconnect": 1, "reconnect_streamed": 1, "reconnect_delay_max": FIVE_MINUTES})
+
+        input_arguments.update({"i": get_input_path(path)})
+        return input_arguments
 
     @property
     def local_path(self):
