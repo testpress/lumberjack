@@ -125,7 +125,10 @@ class ManifestGeneratorRunnable(CeleryRunnable):
         self.initialize()
         self.generate_manifest_content()
         self.upload()
-        self.complete_job()
+        if self.is_transcoding_incomplete():
+            self.update_error_status()
+        else:
+            self.complete_job()
         self.notify_webhook()
 
     def initialize(self):
@@ -159,6 +162,15 @@ class ManifestGeneratorRunnable(CeleryRunnable):
                 f"RESOLUTION={media_detail['resolution']}\n{media_detail['name']}\n\n"
             )
         self.manifest_content = content
+
+    def is_transcoding_incomplete(self):
+        # If any output does not 100% progress then job is incomplete
+        return self.job.outputs.exclude(progress=100).exists()
+
+    def update_error_status(self):
+        self.job.status = Job.ERROR
+        self.job.end = now()
+        self.job.save()
 
     def complete_job(self):
         Job.objects.filter(id=self.job.id).update(status=Job.COMPLETED, end=now())

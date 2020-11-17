@@ -136,6 +136,17 @@ class TestManifestGenerator(Mixin, TestCase):
         conn = boto3.resource("s3", region_name=settings.AWS_S3_REGION_CODE)
         return conn.Object(s3_path.bucket_id, s3_path.key_id).get()["Body"]
 
+    def test_incomplete_transcoding_should_be_updated_as_error(self):
+        output = self.job.outputs.first()
+        output.progress = 20
+        output.save()
+
+        self.start_s3_mock()
+        self.manifest_generator.do_run()
+
+        self.job.refresh_from_db()
+        self.assertEqual(Job.ERROR, self.job.status)
+
 
 class TestPostDataToWebhook(TestCase):
     @property
