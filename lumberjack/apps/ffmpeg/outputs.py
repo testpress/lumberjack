@@ -76,9 +76,13 @@ class S3(Storage):
     def upload_file(self, absolute_file_path, source_directory):
         relative_path = os.path.relpath(absolute_file_path, source_directory)
         s3_path = parse_uri(os.path.join(self.destination_url, relative_path))
-        self.client.upload_file(
-            absolute_file_path, s3_path.bucket_id, s3_path.key_id, ExtraArgs={"ACL": "public-read"}
-        )
+
+        try:
+            self.client.head_object(Bucket=s3_path.bucket_id, Key=s3_path.key_id)
+        except ClientError:
+            self.client.upload_file(
+                absolute_file_path, s3_path.bucket_id, s3_path.key_id, ExtraArgs={"ACL": "public-read"}
+            )
 
     def save_text(self, content: str, path: str):
         s3_path = parse_uri(self.destination_url)
