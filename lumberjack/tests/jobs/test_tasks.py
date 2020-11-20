@@ -87,9 +87,20 @@ class TestVideoTranscoder(Mixin, TestCase):
         self.assertEqual(self.video_transcoder.output.status, Output.CANCELLED)
         mock_ffmpeg_manager().stop.assert_called()
 
+    @mock.patch("apps.jobs.runnables.ManifestGeneratorRunnable")
+    @mock.patch("apps.jobs.runnables.Manager")
+    def test_manifest_generator_should_be_called_on_transcoding_completion(
+        self, mock_ffmpeg_manager, mock_manifest_generator
+    ):
+        self.video_transcoder.do_run()
+
+        mock_manifest_generator.assert_called()
+
 
 class TestManifestGenerator(Mixin, TestCase):
     def setUp(self) -> None:
+        self.output.status = Output.COMPLETED
+        self.output.save()
         self.manifest_generator = ManifestGeneratorRunnable(job_id=self.output.job.id)
         self.manifest_generator.initialize()
 
@@ -136,6 +147,14 @@ class TestManifestGenerator(Mixin, TestCase):
         s3_path = parse_uri(url)
         conn = boto3.resource("s3", region_name=settings.AWS_S3_REGION_CODE)
         return conn.Object(s3_path.bucket_id, s3_path.key_id).get()["Body"]
+
+    def test_manifest_should_be_generated_only_for_completed_outputs(self):
+        self.create_output(job=self.job, status=Output.PROCESSING)
+        self.create_output(job=self.job, status=Output.COMPLETED, name="240p")
+        self.manifest_generator.generate_manifest_content()
+
+        expected_manifest_content = "#EXTM3U\n#EXT-X-VERSION:3\n#EXT-X-STREAM-INF:BANDWIDTH=1500000,RESOLUTION=1280x720\n720p/video.m3u8\n\n#EXT-X-STREAM-INF:BANDWIDTH=1500000,RESOLUTION=1280x720\n240p/video.m3u8\n\n"
+        self.assertEqual(expected_manifest_content, self.manifest_generator.manifest_content)
 
 
 class TestPostDataToWebhook(Mixin, TestCase):

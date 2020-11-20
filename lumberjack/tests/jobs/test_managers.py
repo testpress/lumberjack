@@ -20,6 +20,7 @@ class TestVideoTranscodeManager(TestCase, Mixin):
                     "name": "360p",
                     "audio": {"codec": "aac", "bitrate": 128000},
                     "video": {"codec": "h264", "width": 640, "height": 360, "preset": "faster", "bitrate": 1500000},
+                    "priority": 0,
                 }
             ],
             "template": "fcdf3b6457dd4a7cb496f4bd3e27de4d",
@@ -32,17 +33,17 @@ class TestVideoTranscodeManager(TestCase, Mixin):
         self.job = self.create_job(settings=self.job_settings)
         self.manager = VideoTranscodeManager(self.job)
 
-    @mock.patch("apps.jobs.managers.chord")
-    def test_start_should_start_background_task(self, mock_celery_chord):
-        mock_celery_chord.return_value.return_value.parent.id = 12
+    @mock.patch("apps.jobs.managers.group")
+    def test_start_should_start_background_task(self, mock_celery_group):
+        mock_celery_group.return_value.apply_async().id = 12
         self.manager.start()
 
-        mock_celery_chord.assert_called()
+        mock_celery_group.return_value.apply_async.assert_called()
         self.assertEqual(12, self.job.background_task_id)
 
-    @mock.patch("apps.jobs.managers.chord")
-    def test_start_should_create_outputs_for_job(self, mock_celery_chord):
-        mock_celery_chord.return_value.return_value.parent.id = 12
+    @mock.patch("apps.jobs.managers.group")
+    def test_start_should_create_outputs_for_job(self, mock_celery_group):
+        mock_celery_group.return_value.apply_async().id = 12
         self.manager.start()
 
         self.assertEqual(1, self.job.outputs.count())
@@ -58,12 +59,12 @@ class TestVideoTranscodeManager(TestCase, Mixin):
     def test_get_job_info_method_return_job_info(self):
         self.assertEqual(self.job.job_info, self.manager.get_job_info())
 
-    @mock.patch("apps.jobs.managers.chord")
+    @mock.patch("apps.jobs.managers.group")
     @mock.patch("apps.jobs.managers.app.GroupResult")
-    def test_restart_job_should_stop_running_task_and_start_again(self, mock_group_result, mock_celery_chord):
-        mock_celery_chord.return_value.return_value.parent.id = 12
+    def test_restart_job_should_stop_running_task_and_start_again(self, mock_group_result, mock_celery_group):
+        mock_celery_group.return_value.apply_async().id = 12
         self.manager.restart()
 
         mock_group_result.restore().revoke.assert_called()
-        mock_celery_chord.assert_called()
+        mock_celery_group.return_value.apply_async.assert_called()
         self.assertEqual(12, self.job.background_task_id)
