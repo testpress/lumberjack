@@ -2,6 +2,7 @@ from celery.exceptions import SoftTimeLimitExceeded
 
 from django.shortcuts import get_object_or_404
 from django.utils.timezone import now
+from django.db import transaction
 
 from lumberjack.celery import app
 from apps.ffmpeg.main import Manager, FFMpegException
@@ -63,6 +64,8 @@ class VideoTranscoderRunnable(CeleryRunnable):
             self.set_output_status_cancelled()
             transcoder.stop()
 
+        ManifestGeneratorRunnable(job_id=self.job.id).run()
+
     def initialize(self):
         self.job = Job.objects.get(id=self.job_id)
         self.output = Output.objects.get(id=self.output_id)
@@ -123,10 +126,9 @@ class VideoTranscoderRunnable(CeleryRunnable):
 class ManifestGeneratorRunnable(CeleryRunnable):
     def do_run(self, *args, **kwargs):
         self.initialize()
-        self.generate_manifest_content()
-        self.upload()
-        self.complete_job()
-        self.notify_webhook()
+        with transaction.atomic():
+            self.generate_manifest_content()
+            self.upload()
 
     def initialize(self):
         self.job = get_object_or_404(Job, id=self.job_id)
@@ -141,7 +143,10 @@ class ManifestGeneratorRunnable(CeleryRunnable):
 
     def get_media_details(self):
         media_details = []
-        for output in self.job.outputs.order_by("created"):
+        outputs = (
+            Output.objects.select_for_update().filter(job_id=self.job_id, status=Output.COMPLETED).order_by("created")
+        )
+        for output in outputs:
             media_detail = {
                 "bandwidth": output.video_bitrate,
                 "resolution": output.resolution,

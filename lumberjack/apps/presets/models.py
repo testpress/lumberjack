@@ -52,4 +52,5 @@ class OutputPreset(AbstractOutput):
                 "preset": self.video_preset,
             },
             "audio": {"codec": self.audio_encoder, "bitrate": self.audio_bitrate},
+            "priority": self.priority,
         }

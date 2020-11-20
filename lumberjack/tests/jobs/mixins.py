@@ -11,9 +11,9 @@ class Mixin(object):
     def job(self):
         return self.create_job()
 
-    def create_output(self, job=None):
+    def create_output(self, job=None, **kwargs):
         job = job or self.job
-        return OutputFactory(job=job)
+        return OutputFactory(job=job, **kwargs)
 
     @fixture
     def output(self):

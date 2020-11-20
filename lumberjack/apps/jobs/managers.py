@@ -1,10 +1,10 @@
 import copy
 
-from celery import chord
-
-from .tasks import VideoTranscoder, ManifestGenerator
 from apps.jobs.models import Output, Job
+from celery import group
 from lumberjack.celery import app
+
+from .tasks import VideoTranscoder
 
 
 class VideoTranscodeManager:
@@ -22,7 +22,8 @@ class VideoTranscodeManager:
         self.start_tasks(output_tasks)
 
     def start_tasks(self, tasks):
-        task = chord(tasks)(ManifestGenerator.s(job_id=self.job.id))
+        job = group(tasks)
+        task = job.apply_async()
         self.save_background_task_to_job(task)
 
     def create_outputs(self):
@@ -43,6 +44,7 @@ class VideoTranscodeManager:
                 height=output_settings["video"]["height"],
                 settings=job_settings,
                 job=self.job,
+                priority=output_settings.get("priority", 9),
             )
             output.save()
             outputs.append(output)
@@ -52,11 +54,16 @@ class VideoTranscodeManager:
         return self.job.settings["destination"] + "/" + output_settings["name"]
 
     def create_output_tasks(self, outputs):
-        return [VideoTranscoder.s(job_id=self.job.id, output_id=output.id) for output in outputs]
+        return [
+            VideoTranscoder.s(job_id=self.job.id, output_id=output.id).set(
+                queue="transcoding", priority=output.priority
+            )
+            for output in outputs
+        ]
 
     def save_background_task_to_job(self, task):
-        task.parent.save()
-        self.job.background_task_id = task.parent.id
+        task.save()
+        self.job.background_task_id = task.id
         self.update_job_status(Job.QUEUED)
 
     def update_job_status(self, status):

@@ -94,6 +94,7 @@ class AbstractOutput(TimeStampedModel):
     audio_bitrate = models.PositiveIntegerField("Audio Bitrate", default=128000)
     width = models.PositiveSmallIntegerField("Video Width")
     height = models.PositiveSmallIntegerField("Video Height")
+    priority = models.CharField("Priority", null=True, max_length=100)
 
     class Meta:
         ordering = ("-created",)
@@ -107,6 +108,7 @@ class Output(AbstractOutput, TimeFramedModel):
     NOT_STARTED = "not_started"
     QUEUED = "queued"
     PROCESSING = "processing"
+    PARTIALLY_COMPLETED = "partially_completed"
     COMPLETED = "completed"
     CANCELLED = "cancelled"
     ERROR = "error"
@@ -115,6 +117,7 @@ class Output(AbstractOutput, TimeFramedModel):
         (NOT_STARTED, "Not Started"),
         (QUEUED, "Queued"),
         (PROCESSING, "Processing"),
+        (PARTIALLY_COMPLETED, "Partially Completed"),
         (COMPLETED, "Completed"),
         (CANCELLED, "Cancelled"),
         (ERROR, "Error"),
