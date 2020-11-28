@@ -52,7 +52,7 @@ class VideoTranscodeManager:
         return self.job.settings["destination"] + "/" + output_settings["name"]
 
     def create_output_tasks(self, outputs):
-        if "sandbox.testpress.in" in self.job.webhook_url:
+        if self.job.webhook_url and "sandbox.testpress.in" in self.job.webhook_url:
             return [
                 VideoTranscoder.s(job_id=self.job.id, output_id=output.id).set(queue="transcoding_testing")
                 for output in outputs
