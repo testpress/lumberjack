@@ -1,7 +1,7 @@
 import copy
 import json
 
-from celery import chord
+from celery import chord, group
 
 from .tasks import VideoTranscoderTask, ManifestGeneratorTask
 from apps.jobs.models import Output, Job
@@ -23,7 +23,7 @@ class VideoTranscoder:
         self.start_tasks(output_tasks)
 
     def start_tasks(self, tasks):
-        task = chord(tasks)(ManifestGeneratorTask.s(job_id=self.job.id))
+        task = group(tasks).apply_async()
         self.save_background_task_to_job(task)
 
     def create_outputs(self):
@@ -62,8 +62,8 @@ class VideoTranscoder:
         return [VideoTranscoderTask.s(job_id=self.job.id, output_id=output.id) for output in outputs]
 
     def save_background_task_to_job(self, task):
-        task.parent.save()
-        self.job.background_task_id = task.parent.id
+        task.save()
+        self.job.background_task_id = task.id
         self.update_job_status(Job.QUEUED)
 
     def update_job_status(self, status):

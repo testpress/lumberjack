@@ -68,6 +68,7 @@ class VideoTranscoderRunnable(LumberjackRunnable):
             if self.is_transcoding_completed():
                 self.complete_job()
                 self.notify_webhook()
+                self.generate_manifest()
 
     def initialize(self):
         self.job = Job.objects.get(id=self.job_id)
@@ -110,6 +111,9 @@ class VideoTranscoderRunnable(LumberjackRunnable):
 
     def is_multiple_of_five(self, percentage):
         return (percentage % 5) == 0 and self.output.progress != percentage
+
+    def generate_manifest(self):
+        ManifestGeneratorRunnable(job_id=self.job.id).run()
 
     def update_progress(self, percentage):
         if self.is_multiple_of_five(percentage):

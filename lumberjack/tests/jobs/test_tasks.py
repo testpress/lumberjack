@@ -107,6 +107,15 @@ class TestVideoTranscoder(Mixin, TestCase):
         self.assertEqual(self.job.status, Job.COMPLETED)
         mock_webhook.apply_async.assert_called_with(args=(self.job.job_info, "google.com"))
 
+    @mock.patch("apps.jobs.runnables.ManifestGeneratorRunnable")
+    @mock.patch("apps.jobs.runnables.Manager")
+    def test_manifest_generator_should_be_called_on_transcoding_completion(
+        self, mock_ffmpeg_manager, mock_manifest_generator
+    ):
+        self.video_transcoder.do_run()
+
+        mock_manifest_generator.assert_called()
+
 
 class TestManifestGenerator(Mixin, TestCase):
     def setUp(self) -> None:
