@@ -53,8 +53,9 @@ class TestVideoTranscoder(Mixin, TestCase):
         self.video_transcoder.output = self.output
         self.video_transcoder.job = self.output.job
 
+    @mock.patch("apps.jobs.runnables.ControllerNode")
     @mock.patch("apps.jobs.runnables.Manager")
-    def test_runnable_should_run_ffmpeg_manager(self, mock_ffmpeg_manager):
+    def test_runnable_should_run_ffmpeg_manager(self, mock_ffmpeg_manager, mock_controller):
         self.video_transcoder.do_run()
 
         self.assertTrue(mock_ffmpeg_manager.called)
@@ -65,9 +66,12 @@ class TestVideoTranscoder(Mixin, TestCase):
         self.assertEqual(self.output.progress, 20)
         self.assertEqual(self.job.progress, 20)
 
+    @mock.patch("apps.jobs.runnables.ControllerNode")
     @mock.patch("apps.jobs.runnables.Manager", **{"return_value.run.side_effect": FFMpegException()})
     @mock.patch("apps.jobs.managers.app.GroupResult")
-    def test_task_should_be_stopped_in_case_of_exception(self, mock_group_result, mock_ffmpeg_manager):
+    def test_task_should_be_stopped_in_case_of_exception(
+        self, mock_group_result, mock_ffmpeg_manager, mock_controller
+    ):
         task_mock = mock.MagicMock()
         mock_group_result.restore.return_value = [task_mock]
         self.video_transcoder.do_run()
@@ -75,10 +79,11 @@ class TestVideoTranscoder(Mixin, TestCase):
         task_mock.revoke.assert_called_with(terminate=True, signal="SIGUSR1")
         self.assertEqual(self.video_transcoder.job.status, Job.ERROR)
 
+    @mock.patch("apps.jobs.runnables.ControllerNode")
     @mock.patch("apps.jobs.runnables.Manager", **{"return_value.run.side_effect": SoftTimeLimitExceeded()})
     @mock.patch("apps.jobs.managers.app.GroupResult")
     def test_task_should_stop_ffmpeg_process_in_case_of_soft_time_limit_exception(
-        self, mock_group_result, mock_ffmpeg_manager
+        self, mock_group_result, mock_ffmpeg_manager, mock_controller
     ):
         task_mock = mock.MagicMock()
         mock_group_result.restore.return_value = [task_mock]
