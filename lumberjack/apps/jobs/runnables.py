@@ -4,7 +4,7 @@ from django.utils.timezone import now
 
 from apps.ffmpeg.main import Manager, FFMpegException
 from apps.ffmpeg.outputs import OutputFactory
-from apps.jobs.controller_node import ControllerNode
+from apps.nodes.controller import ControllerNode
 from apps.jobs.models import Job, Output
 from lumberjack.celery import app
 
