@@ -7,7 +7,7 @@ from django.conf import settings
 
 from apps.ffmpeg.command_generator import CommandGenerator
 from apps.ffmpeg.utils import mkdir
-from apps.ffmpeg.event_source import EventSource, ProgressObserver, OutputObserver
+from apps.ffmpeg.event_source import EventSource, ProgressObserver
 
 
 class Manager:
@@ -32,10 +32,8 @@ class Manager:
 
     def create_observers(self):
         self.progress_observer = ProgressObserver(self.monitor)
-        self.output_observer = OutputObserver(self.options.get("output")["url"], self.local_path)
 
     def register_observers(self):
-        self.event_source.register(self.output_observer)
         self.event_source.register(self.progress_observer)
 
 
