@@ -32,11 +32,9 @@ class FFMpegManager:
 
     def create_observers(self):
         self.progress_observer = ProgressObserver(self.monitor)
-        self.output_observer = OutputFileObserver(self.options.get("output")["url"], self.local_path)
 
     def register_observers(self):
-        self.log_parser.register(self.output_observer)
-        self.log_parser.register(self.progress_observer)
+        self.event_source.register(self.progress_observer)
 
 
 class Executor:
