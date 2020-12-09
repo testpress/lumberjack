@@ -15,7 +15,7 @@
 from typing import Optional
 
 from apps.ffmpeg.outputs import OutputFactory
-from .node_base import ProcessStatus, ThreadedNodeBase
+from .base import ProcessStatus, ThreadedNodeBase
 
 
 class CloudNode(ThreadedNodeBase):
