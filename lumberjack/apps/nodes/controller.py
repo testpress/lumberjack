@@ -15,8 +15,8 @@ from typing import List
 
 from django.conf import settings
 
-from apps.jobs.cloud_node import CloudNode
-from .node_base import NodeBase, ProcessStatus
+from .cloud import CloudNode
+from .base import NodeBase, ProcessStatus
 
 
 class ControllerNode(object):
