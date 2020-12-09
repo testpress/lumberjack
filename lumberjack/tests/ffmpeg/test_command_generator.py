@@ -75,6 +75,21 @@ class TestCommandGenerator(SimpleTestCase):
         output_path = "tests/ffmpeg/data/1232/360p/video.m3u8"
         self.assertEqual(output_path, self.command_generator.output_path)
 
+    def test_output_path_file_name_should_have_extension_if_not_provided_by_user(self):
+        data = self.data
+        data["format"] = "MP4"
+        data["file_name"] = "video"
+        command_generator = CommandGenerator(data)
+
+        self.assertTrue(command_generator.output_path.endswith(".mp4"))
+
+    def test_command_for_mp4_should_have_fragmentation_flags(self):
+        data = self.data
+        data["format"] = "MP4"
+        command_generator = CommandGenerator(data)
+
+        self.assertEqual("frag_keyframe+empty_moov", command_generator.media_options["movflags"])
+
 
 class TestHLSKeyInfoFile(SimpleTestCase):
     def setUp(self) -> None:

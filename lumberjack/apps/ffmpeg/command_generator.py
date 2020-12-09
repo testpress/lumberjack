@@ -5,6 +5,7 @@ from django.conf import settings
 
 from apps.ffmpeg.utils import mkdir
 from .inputs import get_input_path
+from .utils import ExtensionGenerator
 
 
 class CommandGenerator(object):
@@ -51,12 +52,17 @@ class CommandGenerator(object):
 
     @property
     def output_path(self):
-        return "{}/{}/{}".format(self.local_path, self.options.get("output")["name"], self.options.get("file_name"))
+        file_name = self.options.get("file_name")
+        if len(file_name.split(".")) == 1:
+            file_name = file_name + "." + ExtensionGenerator().get(self.options.get("format"))
+        return "{}/{}/{}".format(self.local_path, self.options.get("output")["name"], file_name)
 
     @property
     def media_options(self):
         if self.options.get("format").lower() == "hls":
             return HLSOptions(self.options).all
+        elif self.options.get("format").lower() == "mp4":
+            return MP4Options(self.options).all
         return MediaOptions(self.options).all
 
 
@@ -96,6 +102,14 @@ class MediaOptions(object):
         args = {}
         args.update(self.audio_options())
         args.update(self.video_options())
+        return args
+
+
+class MP4Options(MediaOptions):
+    @property
+    def all(self):
+        args = super().all
+        args.update({"movflags": "frag_keyframe+empty_moov"})
         return args
 
 
