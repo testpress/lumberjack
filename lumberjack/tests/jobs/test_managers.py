@@ -1,4 +1,5 @@
 import mock
+import json
 
 from django.test import TestCase
 
@@ -67,3 +68,19 @@ class TestVideoTranscodeManager(TestCase, Mixin):
         mock_group_result.restore().revoke.assert_called()
         mock_celery_chord.assert_called()
         self.assertEqual(12, self.job.background_task_id)
+
+    def test_outputs_should_run_in_specific_queue_if_provided_in_job_meta(self):
+        self.job.meta_data = json.dumps({"queue": "priority"})
+        self.job.save()
+        self.create_output(job=self.job)
+        tasks = self.manager.create_output_tasks(self.job.outputs.all())
+
+        self.assertEqual("priority", tasks[0].options.get("queue"))
+
+    def test_outputs_should_not_have_queue_if_not_provided_in_job_meta(self):
+        self.job.meta_data = None
+        self.job.save()
+        self.create_output(job=self.job)
+        tasks = self.manager.create_output_tasks(self.job.outputs.all())
+
+        self.assertEqual(None, tasks[0].options.get("queue"))

@@ -1,4 +1,5 @@
 import copy
+import json
 
 from celery import chord
 
@@ -52,9 +53,10 @@ class VideoTranscodeManager:
         return self.job.settings["destination"] + "/" + output_settings["name"]
 
     def create_output_tasks(self, outputs):
-        if self.job.webhook_url and "sandbox.testpress.in" in self.job.webhook_url:
+        if self.job.meta_data and json.loads(self.job.meta_data).get("queue"):
+            meta_data = json.loads(self.job.meta_data)
             return [
-                VideoTranscoder.s(job_id=self.job.id, output_id=output.id).set(queue="transcoding_testing")
+                VideoTranscoder.s(job_id=self.job.id, output_id=output.id).set(queue=meta_data.get("queue"))
                 for output in outputs
             ]
         return [VideoTranscoder.s(job_id=self.job.id, output_id=output.id) for output in outputs]
