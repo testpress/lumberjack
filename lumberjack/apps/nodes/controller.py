@@ -11,21 +11,14 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-import os
-import re
-import shutil
-import string
-import subprocess
-import sys
-import tempfile
-import uuid
+
+from typing import List
 
 from django.conf import settings
 
-from typing import Any, Dict, List, Tuple, Union
+from .base import NodeBase, ProcessStatus
 from .cloud import CloudNode
 from .transcoder import TranscoderNode
-from .base import NodeBase, ProcessStatus
 
 
 class ControllerNode(object):
@@ -38,7 +31,7 @@ class ControllerNode(object):
     def __exit__(self, *unused_args) -> None:
         self.stop()
 
-    def start(self, config, progress_callback) -> "ControllerNode":
+    def start(self, config, progress_callback=None) -> "ControllerNode":
 
         if self._nodes:
             raise RuntimeError("Controller already started!")

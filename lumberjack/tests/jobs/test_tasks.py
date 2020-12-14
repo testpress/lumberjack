@@ -16,6 +16,7 @@ from apps.jobs.tasks import PostDataToWebhookTask
 from apps.api.v1.jobs.serializers import JobSerializer
 from apps.jobs.models import Job, Output
 from apps.ffmpeg.main import FFMpegException
+from apps.nodes.base import ProcessStatus
 from .mixins import Mixin
 
 
@@ -55,9 +56,11 @@ class TestVideoTranscoder(Mixin, TestCase):
         self.video_transcoder.job = self.output.job
 
     @mock.patch("apps.jobs.runnables.OutputFactory")
-    @mock.patch("apps.jobs.runnables.ControllerNode")
-    @mock.patch("apps.jobs.runnables.Manager")
+    @mock.patch("apps.nodes.controller.CloudNode")
+    @mock.patch("apps.nodes.controller.TranscoderNode")
     def test_runnable_should_run_ffmpeg_manager(self, mock_ffmpeg_manager, mock_controller, mock_ouptput_factory):
+        mock_ffmpeg_manager().check_status.return_value = ProcessStatus.Finished
+        mock_controller().check_status.return_value = ProcessStatus.Finished
         self.video_transcoder.do_run()
 
         self.assertTrue(mock_ffmpeg_manager.called)
@@ -68,13 +71,15 @@ class TestVideoTranscoder(Mixin, TestCase):
         self.assertEqual(self.output.progress, 20)
         self.assertEqual(self.job.progress, 20)
 
-    @mock.patch("apps.jobs.runnables.ControllerNode")
-    @mock.patch("apps.jobs.runnables.Manager", **{"return_value.run.side_effect": FFMpegException()})
+    @mock.patch("apps.nodes.controller.CloudNode")
+    @mock.patch("apps.nodes.controller.TranscoderNode", **{"return_value.run.side_effect": Exception()})
     @mock.patch("apps.jobs.models.app.control")
     def test_task_should_be_stopped_in_case_of_exception(
         self, mock_celery_control, mock_ffmpeg_manager, mock_controller
     ):
         self.create_output()
+        mock_ffmpeg_manager().check_status.return_value = ProcessStatus.Errored
+        mock_controller().check_status.return_value = ProcessStatus.Finished
         self.video_transcoder.do_run()
 
         mock_celery_control.revoke.assert_called_with(None, terminate=True, signal="SIGUSR1")
@@ -85,49 +90,6 @@ class TestVideoTranscoder(Mixin, TestCase):
     @mock.patch("apps.jobs.models.app.GroupResult")
     def test_task_should_stop_ffmpeg_process_in_case_of_soft_time_limit_exception(
         self, mock_group_result, mock_ffmpeg_manager, mock_controller
-    ):
-        task_mock = mock.MagicMock()
-        mock_group_result.restore.return_value = [task_mock]
-        self.video_transcoder.do_run()
-
-        self.assertEqual(self.video_transcoder.output.status, Output.CANCELLED)
-        mock_ffmpeg_manager().stop.assert_called()
-
-    def test_complete_job_should_change_status_to_completed(self):
-        self.video_transcoder.complete_job()
-
-        self.job.refresh_from_db()
-        self.assertEqual(self.job.status, Job.COMPLETED)
-
-    @mock.patch("apps.jobs.runnables.OutputFactory")
-    @mock.patch("apps.jobs.tasks.PostDataToWebhookTask")
-    @mock.patch("apps.jobs.runnables.Manager")
-    def test_job_completion_status_should_should_be_notified_on_transcoding_completion(
-        self, mock_ffmpeg, mock_webhook, mock_output_factory
-    ):
-        self.job.webhook_url = "google.com"
-        self.job.save()
-        self.video_transcoder.do_run()
-
-        self.job.refresh_from_db()
-        self.assertEqual(self.job.status, Job.COMPLETED)
-        mock_webhook.apply_async.assert_called_with(args=(JobSerializer(instance=self.job).data, "google.com"))
-
-    @mock.patch("apps.jobs.runnables.ManifestGeneratorRunnable")
-    @mock.patch("apps.jobs.runnables.Manager")
-    def test_manifest_generator_should_be_called_on_transcoding_completion(
-        self, mock_ffmpeg_manager, mock_manifest_generator
-    ):
-        self.video_transcoder.do_run()
-
-        mock_manifest_generator.assert_called()
-
-
-class TestManifestGenerator(Mixin, TestCase):
-    def setUp(self) -> None:
-        self.manifest_generator = ManifestGeneratorRunnable(job_id=self.output.job.id)
-        self.manifest_generator.initialize()
-
     @property
     def media_details(self):
         return [
