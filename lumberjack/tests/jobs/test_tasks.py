@@ -15,6 +15,7 @@ from apps.jobs.runnables import VideoTranscoderRunnable, ManifestGeneratorRunnab
 from apps.jobs.tasks import PostDataToWebhookTask
 from apps.jobs.models import Job, Output
 from apps.ffmpeg.main import FFMpegException
+from apps.nodes.base import ProcessStatus
 from .mixins import Mixin
 
 
@@ -34,7 +35,7 @@ class TestVideoTranscoder(Mixin, TestCase):
             },
             "output": {
                 "name": "360p",
-                "url": "file://media.testpress.in/institute/demo/videos/transcoded/bunny",
+                "url": "s3://bucket_url/folder/demo/videos/transcoded/bunny",
                 "local_path": "/abc/1232/360p",
                 "video": {"width": 360, "height": 640, "codec": "h264", "bitrate": 500000},
                 "audio": {"codec": "aac", "bitrate": "48000"},
@@ -42,7 +43,7 @@ class TestVideoTranscoder(Mixin, TestCase):
         }
 
     def setUp(self) -> None:
-        self.output.settings = json.dumps(self.output_settings)
+        self.output.settings = self.output_settings
         self.output.save()
         self.prepare_video_transcoder()
 
@@ -53,9 +54,11 @@ class TestVideoTranscoder(Mixin, TestCase):
         self.video_transcoder.output = self.output
         self.video_transcoder.job = self.output.job
 
-    @mock.patch("apps.jobs.runnables.ControllerNode")
-    @mock.patch("apps.jobs.runnables.Manager")
+    @mock.patch("apps.nodes.controller.CloudNode")
+    @mock.patch("apps.nodes.controller.TranscoderNode")
     def test_runnable_should_run_ffmpeg_manager(self, mock_ffmpeg_manager, mock_controller):
+        mock_ffmpeg_manager().check_status.return_value = ProcessStatus.Finished
+        mock_controller().check_status.return_value = ProcessStatus.Finished
         self.video_transcoder.do_run()
 
         self.assertTrue(mock_ffmpeg_manager.called)
@@ -66,31 +69,20 @@ class TestVideoTranscoder(Mixin, TestCase):
         self.assertEqual(self.output.progress, 20)
         self.assertEqual(self.job.progress, 20)
 
-    @mock.patch("apps.jobs.runnables.ControllerNode")
-    @mock.patch("apps.jobs.runnables.Manager", **{"return_value.run.side_effect": FFMpegException()})
+    @mock.patch("apps.nodes.controller.CloudNode")
+    @mock.patch("apps.nodes.controller.TranscoderNode", **{"return_value.run.side_effect": Exception()})
     @mock.patch("apps.jobs.managers.app.GroupResult")
     def test_task_should_be_stopped_in_case_of_exception(
         self, mock_group_result, mock_ffmpeg_manager, mock_controller
     ):
+        mock_ffmpeg_manager().check_status.return_value = ProcessStatus.Errored
+        mock_controller().check_status.return_value = ProcessStatus.Finished
         task_mock = mock.MagicMock()
         mock_group_result.restore.return_value = [task_mock]
         self.video_transcoder.do_run()
 
         task_mock.revoke.assert_called_with(terminate=True, signal="SIGUSR1")
         self.assertEqual(self.video_transcoder.job.status, Job.ERROR)
-
-    @mock.patch("apps.jobs.runnables.ControllerNode")
-    @mock.patch("apps.jobs.runnables.Manager", **{"return_value.run.side_effect": SoftTimeLimitExceeded()})
-    @mock.patch("apps.jobs.managers.app.GroupResult")
-    def test_task_should_stop_ffmpeg_process_in_case_of_soft_time_limit_exception(
-        self, mock_group_result, mock_ffmpeg_manager, mock_controller
-    ):
-        task_mock = mock.MagicMock()
-        mock_group_result.restore.return_value = [task_mock]
-        self.video_transcoder.do_run()
-
-        self.assertEqual(self.video_transcoder.output.status, Output.CANCELLED)
-        mock_ffmpeg_manager().stop.assert_called()
 
 
 class TestManifestGenerator(Mixin, TestCase):
