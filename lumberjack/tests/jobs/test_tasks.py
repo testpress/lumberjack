@@ -1,16 +1,16 @@
 import json
+
+import boto3
 import mock
 import responses
-from requests.exceptions import ConnectionError
-from moto import mock_s3
-import boto3
-from smart_open import parse_uri
-from celery.exceptions import SoftTimeLimitExceeded
-
-from django.test import TestCase
 from django.conf import settings
 from django.core.serializers.json import DjangoJSONEncoder
+from django.test import TestCase
+from moto import mock_s3
+from requests.exceptions import ConnectionError
+from smart_open import parse_uri
 
+from apps.jobs.models import Job
 from apps.jobs.runnables import VideoTranscoderRunnable, ManifestGeneratorRunnable
 from apps.jobs.tasks import PostDataToWebhookTask
 from apps.api.v1.jobs.serializers import JobSerializer
