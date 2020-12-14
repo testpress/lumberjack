@@ -16,6 +16,10 @@ import enum
 import sys
 import threading
 import time
+import subprocess
+import traceback
+import os
+import shlex
 
 from typing import Optional
 
@@ -44,6 +48,35 @@ class NodeBase(object):
         self._create_process, and assign the result to self._process.
         """
         pass
+
+    def _create_process(self, args, env={}, merge_env=True, stdout=None, stderr=None, shell=False):
+        """A central point to create subprocesses, so that we can debug the
+        command-line arguments.
+
+        Args:
+          args: An array of strings if shell is False, or a single string is shell
+                is True; the command line of the subprocess.
+          env: A dictionary of environment variables to pass to the subprocess.
+          merge_env: If true, merge env with the parent process environment.
+          shell: If true, args must be a single string, which will be executed as a
+                 shell command.
+        Returns:
+          The Popen object of the subprocess.
+        """
+        if merge_env:
+            child_env = os.environ.copy()
+            child_env.update(env)
+        else:
+            child_env = env
+        return subprocess.Popen(
+            shlex.split(args),
+            env=child_env,
+            stdin=subprocess.DEVNULL,
+            stdout=stdout,
+            stderr=stderr,
+            shell=shell,
+            universal_newlines=True,
+        )
 
     def check_status(self) -> ProcessStatus:
         """Returns the current ProcessStatus of the node."""
@@ -129,3 +162,20 @@ class ThreadedNodeBase(NodeBase):
 
     def check_status(self) -> ProcessStatus:
         return self._status
+
+
+class PolitelyWaitOnFinish(NodeBase):
+    """
+    A mixin that makes stop() wait for the subprocess if status is Finished.
+    This is as opposed to the base class behavior, in which stop() forces
+    the subprocesses of a node to terminate.
+    """
+
+    def stop(self, status: Optional[ProcessStatus]) -> None:
+        if self._process and status == ProcessStatus.Finished:
+            try:
+                print("Waiting for ", self.__class__.__name__)
+                self._process.wait(timeout=300)  # 5 min timeout
+            except subprocess.TimeoutExpired:
+                traceback.print_exc()
+        super().stop(status)

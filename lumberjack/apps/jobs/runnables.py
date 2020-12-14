@@ -1,3 +1,5 @@
+import time
+
 from celery.exceptions import SoftTimeLimitExceeded
 from django.shortcuts import get_object_or_404
 from django.utils.timezone import now
@@ -8,6 +10,7 @@ from apps.ffmpeg.outputs import OutputFactory
 from apps.nodes.controller import ControllerNode
 from apps.jobs.models import Job, Output
 from lumberjack.celery import app
+from apps.nodes.base import ProcessStatus
 
 
 class LumberjackRunnable(object):
@@ -49,25 +52,18 @@ class VideoTranscoderRunnable(LumberjackRunnable):
             self.job.notify_webhook()
         self.update_output_status_and_time(Output.PROCESSING, start=now())
 
-        transcoder = self.initialize_transcoder()
         controller = ControllerNode()
-        controller.start(self.output.settings)
-
-        try:
-            transcoder.run()
-            self.update_output_status_and_time(Output.COMPLETED, end=now())
-            controller.stop()
-        except FFMpegException as error:
-            self.save_exception(error)
-            self.update_output_status_and_time(Output.ERROR, end=now())
-            self.stop_job()
-            controller.stop()
-            if not self.is_job_status_error():
-                self.set_error_status_and_notify()
-        except SoftTimeLimitExceeded:
-            self.set_output_status_cancelled()
-            transcoder.stop()
-            controller.stop()
+        with controller.start(self.output.settings, self.update_progress):
+            while True:
+                status = controller.check_status()
+                if status != ProcessStatus.Running:
+                    if status == ProcessStatus.Finished:
+                        print("Completed")
+                        break
+                    else:
+                        print("Error Occurred")
+                        break
+                time.sleep(1)
 
         with transaction.atomic():
             if self.is_transcoding_completed():
@@ -110,9 +106,6 @@ class VideoTranscoderRunnable(LumberjackRunnable):
 
         self.output.status = status
         self.output.save()
-
-    def initialize_transcoder(self):
-        return Manager(self.output.settings, self.update_progress)
 
     def is_multiple_of_five(self, percentage):
         return (percentage % 5) == 0 and self.output.progress != percentage
