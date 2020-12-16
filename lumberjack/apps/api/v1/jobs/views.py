@@ -14,18 +14,9 @@ class CreateJobView(CreateAPIView):
     queryset = Job.objects.all()
     serializer_class = JobSerializer
 
-    def create(self, request, *args, **kwargs):
-        serializer = self.get_serializer(data=request.data)
-        serializer.is_valid(raise_exception=True)
-        self.perform_create(serializer)
-        self.start_transcoding()
-        return Response(status=status.HTTP_201_CREATED, data=serializer.data)
-
     def perform_create(self, serializer):
-        self.job = serializer.save()
-
-    def start_transcoding(self):
-        VideoTranscoder(self.job).start()
+        job = serializer.save()
+        VideoTranscoder(job).start()
 
 
 class JobsView(ListAPIView):
