@@ -105,7 +105,7 @@ class TestVideoTranscoder(Mixin, TestCase):
 
         self.job.refresh_from_db()
         self.assertEqual(self.job.status, Job.COMPLETED)
-        mock_webhook.apply_async.assert_called_with(args=(self.job.job_info, "google.com"))
+        mock_webhook.apply_async.assert_called_with(args=(JobSerializer(instance=self.job).data, "google.com"))
 
     @mock.patch("apps.jobs.runnables.ManifestGeneratorRunnable")
     @mock.patch("apps.jobs.runnables.Manager")
