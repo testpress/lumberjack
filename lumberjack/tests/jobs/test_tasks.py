@@ -88,6 +88,34 @@ class TestVideoTranscoder(Mixin, TestCase):
         self.assertEqual(self.video_transcoder.output.status, Output.CANCELLED)
         mock_ffmpeg_manager().stop.assert_called()
 
+    def test_complete_job_should_change_status_to_completed(self):
+        self.video_transcoder.complete_job()
+
+        self.job.refresh_from_db()
+        self.assertEqual(self.job.status, Job.COMPLETED)
+
+    @mock.patch("apps.jobs.tasks.PostDataToWebhookTask")
+    @mock.patch("apps.jobs.runnables.Manager")
+    def test_job_completion_status_should_should_be_notified_on_transcoding_completion(
+        self, mock_ffmpeg, mock_webhook
+    ):
+        self.job.webhook_url = "google.com"
+        self.job.save()
+        self.video_transcoder.do_run()
+
+        self.job.refresh_from_db()
+        self.assertEqual(self.job.status, Job.COMPLETED)
+        mock_webhook.apply_async.assert_called_with(args=(JobSerializer(instance=self.job).data, "google.com"))
+
+    @mock.patch("apps.jobs.runnables.ManifestGeneratorRunnable")
+    @mock.patch("apps.jobs.runnables.Manager")
+    def test_manifest_generator_should_be_called_on_transcoding_completion(
+        self, mock_ffmpeg_manager, mock_manifest_generator
+    ):
+        self.video_transcoder.do_run()
+
+        mock_manifest_generator.assert_called()
+
 
 class TestManifestGenerator(Mixin, TestCase):
     def setUp(self) -> None:
@@ -113,11 +141,6 @@ class TestManifestGenerator(Mixin, TestCase):
             "RESOLUTION=1280x720\n720p/video.m3u8\n\n"
         )
         self.assertEqual(expected_manifest_content, self.manifest_generator.manifest_content)
-
-    def update_job_status_should_update_job_as_completed(self):
-        self.manifest_generator.complete_job()
-
-        self.assertEqual(Job.COMPLETED, self.job.status)
 
     def test_upload(self):
         self.start_s3_mock()

@@ -2,6 +2,7 @@ from celery.exceptions import SoftTimeLimitExceeded
 
 from django.shortcuts import get_object_or_404
 from django.utils.timezone import now
+from django.db import transaction
 
 from lumberjack.celery import app
 from apps.ffmpeg.main import Manager, FFMpegException
@@ -63,6 +64,12 @@ class VideoTranscoderRunnable(LumberjackRunnable):
             self.set_output_status_cancelled()
             transcoder.stop()
 
+        with transaction.atomic():
+            if self.is_transcoding_completed():
+                self.complete_job()
+                self.notify_webhook()
+                self.generate_manifest()
+
     def initialize(self):
         self.job = Job.objects.get(id=self.job_id)
         self.output = Output.objects.get(id=self.output_id)
@@ -74,6 +81,20 @@ class VideoTranscoderRunnable(LumberjackRunnable):
         self.job.status = Job.PROCESSING
         self.job.start = now()
         self.job.save()
+
+    def is_transcoding_completed(self):
+        return not self.job.outputs.exclude(status=Output.COMPLETED).exists()
+
+    def complete_job(self):
+        job = Job.objects.select_for_update().get(id=self.job.id)
+        if job.status is not Job.COMPLETED:
+            job.status = Job.COMPLETED
+            job.end = now()
+            job.save(update_fields=["status", "end"])
+
+    def notify_webhook(self):
+        self.job.refresh_from_db()
+        self.job.notify_webhook()
 
     def update_output_status_and_time(self, status, start=None, end=None):
         if start:
@@ -90,6 +111,9 @@ class VideoTranscoderRunnable(LumberjackRunnable):
 
     def is_multiple_of_five(self, percentage):
         return (percentage % 5) == 0 and self.output.progress != percentage
+
+    def generate_manifest(self):
+        ManifestGeneratorRunnable(job_id=self.job.id).run()
 
     def update_progress(self, percentage):
         if self.is_multiple_of_five(percentage):
@@ -125,8 +149,6 @@ class ManifestGeneratorRunnable(LumberjackRunnable):
         self.initialize()
         self.generate_manifest_content()
         self.upload()
-        self.complete_job()
-        self.notify_webhook()
 
     def initialize(self):
         self.job = get_object_or_404(Job, id=self.job_id)
@@ -159,12 +181,3 @@ class ManifestGeneratorRunnable(LumberjackRunnable):
                 f"RESOLUTION={media_detail['resolution']}\n{media_detail['name']}\n\n"
             )
         self.manifest_content = content
-
-    def complete_job(self):
-        self.job.status = Job.COMPLETED
-        self.job.end = now()
-        self.job.save(update_fields=["status", "end"])
-
-    def notify_webhook(self):
-        self.job.refresh_from_db()
-        self.job.notify_webhook()
