@@ -47,7 +47,7 @@ def restart_job_view(request):
 
 
 @api_view(["POST"])
-def clean_outputs(request):
+def clean_outputs_view(request):
     job_id = request.data["job_id"]
     job = get_object_or_404(Job, id=job_id)
     if request.data.get("outputs"):

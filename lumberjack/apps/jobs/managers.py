@@ -85,7 +85,7 @@ class VideoTranscoder:
             task.revoke(terminate=True, signal="SIGUSR1")
 
     def clean(self, outputs):
-        output_storage = OutputFactory.create(self.job.url)
+        output_storage = OutputFactory.create(self.job.output_url)
         for output in outputs:
             if output.settings.get("output") and output.settings.get("output").get("url"):
                 output_storage.delete(output.settings.get("output").get("url"))

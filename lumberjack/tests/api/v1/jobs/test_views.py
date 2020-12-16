@@ -4,7 +4,7 @@ import uuid
 
 from django.test import RequestFactory, TestCase
 
-from apps.api.v1.jobs.views import CreateJobView, job_info_view, cancel_job_view, restart_job_view
+from apps.api.v1.jobs.views import CreateJobView, job_info_view, cancel_job_view, restart_job_view, clean_outputs_view
 from apps.jobs.models import Job
 from tests.jobs.mixins import Mixin as JobMixin
 from apps.api.v1.jobs.serializers import JobSerializer
@@ -119,3 +119,17 @@ class TestCancelJobView(TestCase, JobMixin):
         response = restart_job_view(request)
 
         self.assertEqual(404, response.status_code)
+
+
+class TestCleanOutputsView(TestCase, JobMixin):
+    def setUp(self):
+        self.factory = RequestFactory()
+        self.create_output(self.job)
+
+    @mock.patch("apps.api.v1.jobs.views.VideoTranscoder.clean")
+    def test_api_should_cancel_job(self, mock_video_transcode_manager):
+        request = self.factory.post("/api/v1/jobs/clean", data={"job_id": self.job.id})
+        response = clean_outputs_view(request)
+
+        self.assertEqual(200, response.status_code)
+        mock_video_transcode_manager.assert_called()

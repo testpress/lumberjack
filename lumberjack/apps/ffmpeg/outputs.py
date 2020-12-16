@@ -94,8 +94,10 @@ class S3(Storage):
         self.client.upload_fileobj(file_obj, s3_path.bucket_id, s3_path.key_id, ExtraArgs={"ACL": "public-read"})
 
     def delete(self, directory):
-        bucket = self.session.resource("s3").Bucket("media.testpress.in")
-        bucket.objects.filter(Prefix=directory).delete()
+        bucket_name = parse_uri(self.destination_url).bucket_id
+        bucket = self.session.resource("s3").Bucket(bucket_name)
+        if directory and directory != "/":
+            bucket.objects.filter(Prefix=directory).delete()
 
 
 class FileStorage(Storage):
