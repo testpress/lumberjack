@@ -19,7 +19,6 @@ class VideoTranscoder:
 
     def restart(self, sync=False):
         self.terminate_task()
-        print("Hello")
         output_tasks = self.create_output_tasks(self.job.outputs.all())
         self.start_tasks(output_tasks, sync)
 
