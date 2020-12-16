@@ -24,7 +24,10 @@ class VideoTranscoder:
 
     def start_tasks(self, tasks):
         task = group(tasks).apply_async()
-        self.save_background_task_to_job(task)
+        task.save()
+        self.job.background_task_id = task.id
+        self.job.status = Job.QUEUED
+        self.job.save()
 
     def create_outputs(self):
         job_settings = copy.deepcopy(self.job.settings)
@@ -60,11 +63,6 @@ class VideoTranscoder:
                 for output in outputs
             ]
         return [VideoTranscoderTask.s(job_id=self.job.id, output_id=output.id) for output in outputs]
-
-    def save_background_task_to_job(self, task):
-        task.save()
-        self.job.background_task_id = task.id
-        self.update_job_status(Job.QUEUED)
 
     def update_job_status(self, status):
         self.job.status = status
