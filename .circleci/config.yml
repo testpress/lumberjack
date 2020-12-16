@@ -4,10 +4,10 @@ jobs:
     docker:
       - image: circleci/python:3.7
       - image: circleci/postgres:9.6.7
-      - image: google/shaka-packager:latest
         environment:
           POSTGRES_DB: lumberjack
           POSTGRES_USER: lumberjack
+      - image: google/shaka-packager:latest
     steps:
       - checkout
       - restore_cache:
