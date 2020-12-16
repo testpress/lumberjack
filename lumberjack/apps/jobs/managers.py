@@ -24,10 +24,7 @@ class VideoTranscoder:
 
     def start_tasks(self, tasks):
         task = group(tasks).apply_async()
-        task.save()
-        self.job.background_task_id = task.id
-        self.job.status = Job.QUEUED
-        self.job.save()
+        self.save_background_task_to_job(task)
 
     def create_outputs(self):
         job_settings = copy.deepcopy(self.job.settings)
@@ -51,6 +48,11 @@ class VideoTranscoder:
             output.save()
             outputs.append(output)
         return outputs
+
+    def save_background_task_to_job(self, task):
+        task.save()
+        self.job.background_task_id = task.id
+        self.update_job_status(Job.QUEUED)
 
     def get_output_folder_path(self, output_settings):
         return self.job.settings["destination"] + "/" + output_settings["name"]
