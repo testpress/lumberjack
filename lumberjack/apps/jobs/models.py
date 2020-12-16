@@ -69,7 +69,7 @@ class Job(TimeStampedModel, TimeFramedModel, JobNotifierMixin):
             settings = self.template.settings or {}
             settings["template"] = self.template.id.hex
         else:
-            settings = self.settings
+            settings = self.settings or {}
 
         destination, file_name = os.path.split(self.output_url)
         settings.update(
@@ -80,6 +80,10 @@ class Job(TimeStampedModel, TimeFramedModel, JobNotifierMixin):
             settings.update({"encryption": {"key": self.encryption_key, "url": self.key_url}})
 
         self.settings = settings
+
+    def save(self, *args, **kwargs):
+        self.populate_settings()
+        super().save(*args, **kwargs)
 
 
 class AbstractOutput(TimeStampedModel):

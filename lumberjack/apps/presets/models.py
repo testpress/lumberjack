@@ -34,6 +34,7 @@ class JobTemplate(TimeStampedModel):
     def save(self, *args, **kwargs):
         if not self.pk:
             self.slug = slugify(self.name)
+        self.populate_settings()
         super(JobTemplate, self).save(*args, **kwargs)
 
 

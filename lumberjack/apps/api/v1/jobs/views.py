@@ -23,8 +23,6 @@ class CreateJobView(CreateAPIView):
 
     def perform_create(self, serializer):
         self.job = serializer.save()
-        self.job.populate_settings()
-        self.job.save()
 
     def start_transcoding(self):
         transcode_manager = VideoTranscoder(self.job)
