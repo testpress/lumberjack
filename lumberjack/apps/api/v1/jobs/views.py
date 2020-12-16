@@ -19,7 +19,7 @@ class CreateJobView(CreateAPIView):
         serializer.is_valid(raise_exception=True)
         self.perform_create(serializer)
         self.start_transcoding()
-        return Response(status=status.HTTP_201_CREATED, data=self.job.job_info)
+        return Response(status=status.HTTP_201_CREATED, data=serializer.data)
 
     def perform_create(self, serializer):
         self.job = serializer.save()
@@ -37,8 +37,7 @@ class JobsView(ListAPIView):
 @api_view(["GET"])
 def job_info_view(request, job_id):
     job = get_object_or_404(Job, id=job_id)
-    transcode_manager = VideoTranscoder(job)
-    return Response(data=transcode_manager.get_job_info(), status=status.HTTP_200_OK)
+    return Response(data=JobSerializer(instance=job).data, status=status.HTTP_200_OK)
 
 
 @api_view(["POST"])

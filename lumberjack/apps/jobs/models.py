@@ -51,19 +51,6 @@ class Job(TimeStampedModel, TimeFramedModel, JobNotifierMixin):
         self.progress = progress_dict["progress__avg"]
         self.save(update_fields=["progress"])
 
-    @property
-    def job_info(self):
-        return {
-            "id": str(self.id),
-            "status": self.get_status_display(),
-            "settings": self.settings,
-            "input_url": self.input_url,
-            "output_url": self.output_url,
-            "start_time": self.start,
-            "end_time": self.end,
-            "submission_time": self.created,
-        }
-
     def populate_settings(self):
         if self.template is not None:
             settings = self.template.settings or {}

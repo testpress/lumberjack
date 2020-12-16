@@ -13,6 +13,7 @@ from django.core.serializers.json import DjangoJSONEncoder
 
 from apps.jobs.runnables import VideoTranscoderRunnable, ManifestGeneratorRunnable
 from apps.jobs.tasks import PostDataToWebhookTask
+from apps.api.v1.jobs.serializers import JobSerializer
 from apps.jobs.models import Job, Output
 from apps.ffmpeg.main import FFMpegException
 from .mixins import Mixin
@@ -145,11 +146,11 @@ class TestPostDataToWebhook(Mixin, TestCase):
 
     @mock.patch("apps.jobs.tasks.requests")
     def test_data_should_be_posted_to_webhook(self, requests_mock):
-        PostDataToWebhookTask.run(data=self.job.job_info, url=self.url)
+        PostDataToWebhookTask.run(data=JobSerializer(instance=self.job).data, url=self.url)
 
         requests_mock.post.assert_called_with(
             "http://domain.com/webhook/",
-            data=json.dumps(self.job.job_info, cls=DjangoJSONEncoder),
+            data=json.dumps(JobSerializer(instance=self.job).data, cls=DjangoJSONEncoder),
             headers={"Content-Type": "application/json"},
         )
 
@@ -157,6 +158,6 @@ class TestPostDataToWebhook(Mixin, TestCase):
     @mock.patch("apps.jobs.tasks.PostDataToWebhookTask.retry")
     def test_error(self, retry_mock):
         responses.add(responses.POST, self.url, body=ConnectionError("Gateway Error"))
-        PostDataToWebhookTask.run(data=self.job.job_info, url=self.url)
+        PostDataToWebhookTask.run(data=JobSerializer(instance=self.job).data, url=self.url)
 
         retry_mock.assert_called()

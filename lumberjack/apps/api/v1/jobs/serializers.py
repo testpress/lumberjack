@@ -7,6 +7,10 @@ class JobSerializer(serializers.ModelSerializer):
     webhook_url = serializers.URLField(required=False, allow_blank=True, allow_null=True)
     encryption_key = serializers.CharField(required=False, allow_blank=True, allow_null=True)
     key_url = serializers.CharField(required=False, allow_blank=True, allow_null=True)
+    status = serializers.ReadOnlyField(source="get_status_display")
+    start_time = serializers.ReadOnlyField(source="start")
+    end_time = serializers.ReadOnlyField(source="end")
+    submission_time = serializers.ReadOnlyField(source="created")
 
     def validate(self, attrs):
         if not attrs.get("template") and not attrs.get("settings"):
@@ -24,4 +28,12 @@ class JobSerializer(serializers.ModelSerializer):
             "encryption_key",
             "key_url",
             "meta_data",
+            "id",
+            "status",
+            "start_time",
+            "end_time",
+            "submission_time",
         ]
+        extra_kwargs = {
+            "id": {"read_only": True},
+        }

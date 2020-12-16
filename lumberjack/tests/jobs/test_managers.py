@@ -56,9 +56,6 @@ class TestVideoTranscodeManager(TestCase, Mixin):
         self.assertEqual(Job.CANCELLED, self.job.status)
         mock_group_result.restore().revoke.assert_called()
 
-    def test_get_job_info_method_return_job_info(self):
-        self.assertEqual(self.job.job_info, self.manager.get_job_info())
-
     @mock.patch("apps.jobs.managers.chord")
     @mock.patch("apps.jobs.managers.app.GroupResult")
     def test_restart_job_should_stop_running_task_and_start_again(self, mock_group_result, mock_celery_chord):

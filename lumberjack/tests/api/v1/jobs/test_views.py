@@ -7,6 +7,7 @@ from django.test import RequestFactory, TestCase
 from apps.api.v1.jobs.views import CreateJobView, job_info_view, cancel_job_view, restart_job_view
 from apps.jobs.models import Job
 from tests.jobs.mixins import Mixin as JobMixin
+from apps.api.v1.jobs.serializers import JobSerializer
 
 
 class Mixin:
@@ -34,6 +35,7 @@ class TestCreateJobView(TestCase, Mixin, JobMixin):
         response = CreateJobView.as_view()(request)
 
         self.assertEqual(201, response.status_code)
+        self.assertEqual(response.data, JobSerializer(instance=Job.objects.get(id=response.data["id"])).data)
         self.assertTrue(Job.objects.filter(meta_data=self.data["meta_data"]).exists())
         mock_video_transcode_manager.assert_called()
 
@@ -68,7 +70,7 @@ class TestJobInfoView(TestCase, JobMixin):
         response = job_info_view(request, self.job.id)
 
         self.assertEqual(200, response.status_code)
-        self.assertEqual(response.data, self.job.job_info)
+        self.assertEqual(response.data, JobSerializer(instance=self.job).data)
 
     def test_error_should_be_thrown_for_incorrect_job_id(self):
         request = self.factory.get("/api/v1/jobs/%s" % self.job.id)

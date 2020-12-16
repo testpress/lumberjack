@@ -81,6 +81,3 @@ class VideoTranscoder:
         task = app.GroupResult.restore(str(self.job.background_task_id))
         if task:
             task.revoke(terminate=True, signal="SIGUSR1")
-
-    def get_job_info(self):
-        return self.job.job_info
