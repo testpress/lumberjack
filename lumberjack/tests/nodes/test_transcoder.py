@@ -14,10 +14,6 @@ class TestTranscoder(SimpleTestCase):
             "destination": "file:///abc",
             "file_name": "video.m3u8",
             "format": "HLS",
-            "encryption": {
-                "key": "ecd0d06eaf884d8226c33928e87efa33",
-                "url": "https://demo.testpress.in/api/v2.4/encryption_key/abcdef/",
-            },
             "output": {
                 "name": "360p",
                 "url": "s3://bucket_url/institute/demo/videos/transcoded/bunny",
