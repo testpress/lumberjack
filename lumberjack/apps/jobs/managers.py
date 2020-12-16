@@ -23,10 +23,10 @@ class VideoTranscoder:
         self.start_tasks(output_tasks)
 
     def start_tasks(self, tasks):
+        self.update_job_status(Job.QUEUED)
         task = group(tasks).apply_async()
         task.save()
         self.job.background_task_id = task.id
-        self.job.status = Job.QUEUED
         self.job.save()
 
     def create_outputs(self):
