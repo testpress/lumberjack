@@ -28,7 +28,7 @@ class TestCreateJobView(TestCase, Mixin, JobMixin):
             "meta_data": json.dumps({"content_url": "https://domain.com/chapters/chapter-3/40/"}),
         }
 
-    @mock.patch("apps.api.v1.jobs.views.VideoTranscodeManager.start")
+    @mock.patch("apps.api.v1.jobs.views.VideoTranscoder.start")
     def test_api_should_start_transcoding_for_valid_data(self, mock_video_transcode_manager):
         request = self.factory.post("/api/v1/jobs/create", data=self.data)
         response = CreateJobView.as_view()(request)
@@ -90,7 +90,7 @@ class TestCancelJobView(TestCase, JobMixin):
     def setUp(self):
         self.factory = RequestFactory()
 
-    @mock.patch("apps.api.v1.jobs.views.VideoTranscodeManager.stop")
+    @mock.patch("apps.api.v1.jobs.views.VideoTranscoder.stop")
     def test_api_should_cancel_job(self, mock_video_transcode_manager):
         request = self.factory.post("/api/v1/jobs/cancel", data={"job_id": self.job.id})
         response = cancel_job_view(request)
@@ -104,7 +104,7 @@ class TestCancelJobView(TestCase, JobMixin):
 
         self.assertEqual(404, response.status_code)
 
-    @mock.patch("apps.api.v1.jobs.views.VideoTranscodeManager.restart")
+    @mock.patch("apps.api.v1.jobs.views.VideoTranscoder.restart")
     def test_restart_api_should_restart_video_transcoding(self, mock_video_transcode_manager_restart):
         request = self.factory.post("/api/v1/jobs/restart", data={"job_id": self.job.id})
         response = restart_job_view(request)

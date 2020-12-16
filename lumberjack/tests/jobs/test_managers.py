@@ -4,7 +4,7 @@ import json
 from django.test import TestCase
 
 from tests.jobs.mixins import Mixin
-from apps.jobs.managers import VideoTranscodeManager
+from apps.jobs.managers import VideoTranscoder
 from apps.jobs.models import Output, Job
 
 
@@ -31,7 +31,7 @@ class TestVideoTranscodeManager(TestCase, Mixin):
 
     def setUp(self) -> None:
         self.job = self.create_job(settings=self.job_settings)
-        self.manager = VideoTranscodeManager(self.job)
+        self.manager = VideoTranscoder(self.job)
 
     @mock.patch("apps.jobs.managers.chord")
     def test_start_should_start_background_task(self, mock_celery_chord):

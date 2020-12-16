@@ -7,7 +7,7 @@ from django.shortcuts import get_object_or_404
 
 from apps.jobs.models import Job
 from .serializers import JobSerializer
-from apps.jobs.managers import VideoTranscodeManager
+from apps.jobs.managers import VideoTranscoder
 
 
 class CreateJobView(CreateAPIView):
@@ -27,7 +27,7 @@ class CreateJobView(CreateAPIView):
         self.job.save()
 
     def start_transcoding(self):
-        transcode_manager = VideoTranscodeManager(self.job)
+        transcode_manager = VideoTranscoder(self.job)
         transcode_manager.start()
 
 
@@ -39,7 +39,7 @@ class JobsView(ListAPIView):
 @api_view(["GET"])
 def job_info_view(request, job_id):
     job = get_object_or_404(Job, id=job_id)
-    transcode_manager = VideoTranscodeManager(job)
+    transcode_manager = VideoTranscoder(job)
     return Response(data=transcode_manager.get_job_info(), status=status.HTTP_200_OK)
 
 
@@ -47,7 +47,7 @@ def job_info_view(request, job_id):
 def cancel_job_view(request):
     job_id = request.data["job_id"]
     job = get_object_or_404(Job, id=job_id)
-    transcode_manager = VideoTranscodeManager(job)
+    transcode_manager = VideoTranscoder(job)
     transcode_manager.stop()
     return Response(status=status.HTTP_200_OK)
 
@@ -56,6 +56,6 @@ def cancel_job_view(request):
 def restart_job_view(request):
     job_id = request.data["job_id"]
     job = get_object_or_404(Job, id=job_id)
-    transcode_manager = VideoTranscodeManager(job)
+    transcode_manager = VideoTranscoder(job)
     transcode_manager.restart()
     return Response(status=status.HTTP_200_OK)

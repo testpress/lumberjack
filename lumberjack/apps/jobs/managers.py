@@ -8,7 +8,7 @@ from apps.jobs.models import Output, Job
 from lumberjack.celery import app
 
 
-class VideoTranscodeManager:
+class VideoTranscoder:
     def __init__(self, job):
         self.job = job
 
