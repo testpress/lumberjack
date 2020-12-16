@@ -31,6 +31,7 @@ class TranscoderNode(PolitelyWaitOnFinish, NodeBase):
         self.config = config
         self.progress_observer = progress_callback
         self.command = CommandGenerator(config).generate()
+        self.event_source = None
 
     def start(self):
         self.create_output_folder()
@@ -49,7 +50,8 @@ class TranscoderNode(PolitelyWaitOnFinish, NodeBase):
 
     def stop(self, status: Optional[ProcessStatus]) -> None:
         super().stop(status)
-        self.event_source.stop()
+        if self.event_source:
+            self.event_source.stop()
 
     def register_observers(self):
         if self.progress_observer:
