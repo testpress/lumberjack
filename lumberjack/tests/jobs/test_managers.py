@@ -49,6 +49,14 @@ class TestVideoTranscodeManager(TestCase, Mixin):
         self.assertEqual(1, self.job.outputs.count())
         self.assertEqual(Output.objects.filter(job_id=self.job.id).first(), self.job.outputs.first())
 
+    @mock.patch("apps.jobs.managers.group")
+    def test_start_with_sync_should_should_run_synchronously(self, mock_celery_group):
+        mock_celery_group.return_value.apply().id = 12
+        self.manager.start(sync=True)
+
+        self.assertEqual(1, self.job.outputs.count())
+        self.assertEqual(Output.objects.filter(job_id=self.job.id).first(), self.job.outputs.first())
+
     @mock.patch("apps.jobs.managers.app.GroupResult")
     def test_stop_should_revoke_background_task(self, mock_group_result):
         self.manager.stop()
