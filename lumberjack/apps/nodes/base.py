@@ -68,8 +68,14 @@ class NodeBase(object):
             child_env.update(env)
         else:
             child_env = env
+
+        if type(args) is str:
+            command = shlex.split(args)
+        else:
+            command = args
+
         return subprocess.Popen(
-            shlex.split(args),
+            command,
             env=child_env,
             stdin=subprocess.DEVNULL,
             stdout=stdout,
