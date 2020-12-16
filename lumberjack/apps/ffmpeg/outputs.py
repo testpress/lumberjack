@@ -28,17 +28,21 @@ class Storage(abc.ABC):
     def save_text(self, content: str, path):
         pass
 
+    @abc.abstractmethod
+    def delete(self, directory):
+        pass
+
 
 class S3(Storage):
     INCOMPLETE_MANIFEST_FILES = r".*\.m3u8"
 
     def __init__(self, destination_url):
-        session = boto3.Session(
+        self.session = boto3.Session(
             aws_access_key_id=settings.AWS_ACCESS_KEY_ID,
             aws_secret_access_key=settings.AWS_SECRET_ACCESS_KEY,
             region_name=settings.AWS_S3_REGION_CODE,
         )
-        self.client = session.client("s3")
+        self.client = self.session.client("s3")
         self.destination_url = destination_url
         self.is_uploading = False
 
@@ -89,6 +93,10 @@ class S3(Storage):
         file_obj = io.BytesIO(content.encode())
         self.client.upload_fileobj(file_obj, s3_path.bucket_id, s3_path.key_id, ExtraArgs={"ACL": "public-read"})
 
+    def delete(self, directory):
+        bucket = self.session.resource("s3").Bucket("media.testpress.in")
+        bucket.objects.filter(Prefix=directory).delete()
+
 
 class FileStorage(Storage):
     def __init__(self, destination_directory):
@@ -107,3 +115,6 @@ class FileStorage(Storage):
         content_as_bytes = io.BytesIO(content.encode()).read()
         with open(self.destination_directory, "wb") as fout:
             fout.write(content_as_bytes)
+
+    def delete(self, directory):
+        shutil.rmtree(directory)

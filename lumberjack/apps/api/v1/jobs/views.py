@@ -44,3 +44,15 @@ def restart_job_view(request):
     job = get_object_or_404(Job, id=job_id)
     VideoTranscoder(job).restart()
     return Response(status=status.HTTP_200_OK)
+
+
+@api_view(["POST"])
+def clean_outputs(request):
+    job_id = request.data["job_id"]
+    job = get_object_or_404(Job, id=job_id)
+    if request.data.get("outputs"):
+        outputs = job.outputs.filter(name__in=request.data.get("outputs"))
+    else:
+        outputs = job.outputs.all()
+    VideoTranscoder(job).clean(outputs)
+    return Response(status=status.HTTP_200_OK)
