@@ -3,7 +3,7 @@ import os
 
 from django.db import models
 
-from .model_mixins import JobNotifierMixin
+from .mixins import JobNotifierMixin
 
 from model_utils.models import TimeStampedModel, TimeFramedModel
 from model_utils.fields import StatusField
