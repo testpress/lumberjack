@@ -2,7 +2,6 @@ from django.test import SimpleTestCase
 
 from apps.nodes.transcoder import TranscoderNode
 from apps.nodes.base import ProcessStatus
-from apps.ffmpeg.utils import mkdir
 
 
 class TestTranscoder(SimpleTestCase):
@@ -27,9 +26,6 @@ class TestTranscoder(SimpleTestCase):
                 "audio": {"codec": "aac", "bitrate": "48000"},
             },
         }
-
-    def setUp(self):
-        mkdir("tests/ffmpeg/data/1232")
 
     def test_process_status_should_be_running_on_starting_transcoder(self):
         transcoder = TranscoderNode(self.output_settings)
