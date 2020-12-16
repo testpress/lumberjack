@@ -25,8 +25,7 @@ class CreateJobView(CreateAPIView):
         self.job = serializer.save()
 
     def start_transcoding(self):
-        transcode_manager = VideoTranscoder(self.job)
-        transcode_manager.start()
+        VideoTranscoder(self.job).start()
 
 
 class JobsView(ListAPIView):
@@ -44,8 +43,7 @@ def job_info_view(request, job_id):
 def cancel_job_view(request):
     job_id = request.data["job_id"]
     job = get_object_or_404(Job, id=job_id)
-    transcode_manager = VideoTranscoder(job)
-    transcode_manager.stop()
+    VideoTranscoder(job).stop()
     return Response(status=status.HTTP_200_OK)
 
 
@@ -53,6 +51,5 @@ def cancel_job_view(request):
 def restart_job_view(request):
     job_id = request.data["job_id"]
     job = get_object_or_404(Job, id=job_id)
-    transcode_manager = VideoTranscoder(job)
-    transcode_manager.restart()
+    VideoTranscoder(job).restart()
     return Response(status=status.HTTP_200_OK)
