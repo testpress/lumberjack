@@ -49,22 +49,25 @@ class VideoTranscoderRunnable(CeleryRunnable):
             self.update_job_start_time_and_initial_status()
             self.job.notify_webhook()
         self.update_output_status_and_time(Output.PROCESSING, start=now())
+        self.run_transcoder()
 
+    def run_transcoder(self):
         controller = ControllerNode()
         with controller.start(self.output.settings, self.update_progress):
             try:
                 while True:
                     status = controller.check_status()
-                    if status != ProcessStatus.Running:
-                        if status == ProcessStatus.Finished:
-                            break
-                        else:
-                            self.update_output_status_and_time(Output.ERROR, end=now())
-                            self.stop_job()
-                            if not self.is_job_status_error():
-                                self.set_error_status_and_notify()
-                            break
+                    if status == ProcessStatus.Finished:
+                        break
+                    elif status == ProcessStatus.Errored:
+                        self.update_output_status_and_time(Output.ERROR, end=now())
+                        self.stop_job()
+                        if not self.is_job_status_error():
+                            self.set_error_status_and_notify()
+                        break
                     time.sleep(1)
+            except RuntimeError:
+                controller.stop()
             except SoftTimeLimitExceeded:
                 self.set_output_status_cancelled()
                 controller.stop()
