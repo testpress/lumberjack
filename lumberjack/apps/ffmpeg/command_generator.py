@@ -152,5 +152,6 @@ class HLSKeyInfoFile:
             key.write(binascii.unhexlify(self.key))
 
     def save_key_info(self):
+        print("Path : ", self.key_info_file_path)
         with open(self.key_info_file_path, "w") as key_info_file:
             key_info_file.write("\n".join([self.key_url, self.key_path]))
