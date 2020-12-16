@@ -12,17 +12,28 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+import uuid
+import os
 from typing import List
+import tempfile
 
 from django.conf import settings
 
 from .base import NodeBase, ProcessStatus
 from .cloud import CloudNode
+from .packager import PackagerNode
 from .transcoder import TranscoderNode
 
 
 class ControllerNode(object):
     def __init__(self) -> None:
+        global_temp_dir = tempfile.gettempdir()
+
+        # The docs state that if any of prefix, suffix, or dir are specified, all
+        # must be specified (and not None).  Create a temp dir of our own, inside
+        # the global temp dir, and with a name that indicates who made it.
+        self._temp_dir = tempfile.mkdtemp(dir=global_temp_dir, prefix="shaka-live-", suffix="")
+
         self._nodes: List[NodeBase] = []
 
     def __enter__(self) -> "ControllerNode":
@@ -30,6 +41,28 @@ class ControllerNode(object):
 
     def __exit__(self, *unused_args) -> None:
         self.stop()
+
+    def _create_pipe(self):
+        """Create a uniquely-named named pipe in the node's temp directory.
+
+        Raises:
+          RuntimeError: If the platform doesn't have mkfifo.
+        Returns:
+          The path to the named pipe, as a string.
+        """
+
+        if not hasattr(os, "mkfifo"):
+            raise RuntimeError("Platform not supported due to lack of mkfifo")
+
+        # Since the tempfile module creates actual files, use uuid to generate a
+        # filename, then call mkfifo to create the named pipe.
+        unique_name = str(uuid.uuid4())
+        path = os.path.join(self._temp_dir, unique_name)
+
+        readable_by_owner_only = 0o600  # Unix permission bits
+        os.mkfifo(path, mode=readable_by_owner_only)
+
+        return path
 
     def start(self, config, progress_callback=None) -> "ControllerNode":
 
@@ -39,6 +72,9 @@ class ControllerNode(object):
         local_path = "{}/{}/{}".format(
             settings.TRANSCODED_VIDEOS_PATH, config.get("id"), config.get("output").get("name")
         )
+        if config.get("format") in ["adaptive", "hls", "dash"]:
+            config["output"]["pipe"] = self._create_pipe()
+            self._nodes.append(PackagerNode(config, local_path))
         self._nodes.append(CloudNode(local_path, config.get("output")["url"]))
         self._nodes.append(TranscoderNode(config, progress_callback))
         for node in self._nodes:

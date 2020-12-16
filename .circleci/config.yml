@@ -24,6 +24,12 @@ jobs:
       - run:
           name: Install FFMPEG
           command: sudo apt-get install -y ffmpeg
+      - run:
+          name: Install Shaka packager
+          command: |
+            curl -L https://github.com/google/shaka-packager/releases/download/v2.4.3/packager-linux > ~/packager
+            chmod +x ~/packager
+            sudo mv ~/packager /usr/local/bin/packager
       - save_cache:
           key: deps1-{{ .Branch }}-{{ checksum "lumberjack/requirements.txt" }}
           paths:
