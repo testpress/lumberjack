@@ -1,6 +1,7 @@
 from mock import patch
 
 from moto import mock_s3
+from botocore.exceptions import ClientError
 
 from django.test import SimpleTestCase
 
@@ -33,6 +34,22 @@ class TestS3Storage(SimpleTestCase):
         s3_response = self.s3_storage.client.get_object(Bucket="somebucket", Key="folder/video.mp4")
         self.assertEqual(200, s3_response["ResponseMetadata"]["HTTPStatusCode"])
         self.assertTrue(mock_os_remove.called)
+
+    @patch("os.remove")
+    def test_delete_should_delete_folder_from_s3(self, mock_os_remove):
+        self.s3_storage.save("tests/ffmpeg/data")
+        self.s3_storage.delete("folder")
+
+        with self.assertRaises(ClientError):
+            self.s3_storage.client.head_object(Bucket="somebucket", Key="folder/video.mp4")
+
+    @patch("os.remove")
+    def test_delete_should_not_delete_if_root_folder(self, mock_os_remove):
+        self.s3_storage.save("tests/ffmpeg/data")
+        self.s3_storage.delete("/")
+
+        s3_response = self.s3_storage.client.get_object(Bucket="somebucket", Key="folder/video.mp4")
+        self.assertEqual(200, s3_response["ResponseMetadata"]["HTTPStatusCode"])
 
     def tearDown(self) -> None:
         self.s3_mock.stop()
