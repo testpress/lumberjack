@@ -12,22 +12,26 @@ class VideoTranscoder:
     def __init__(self, job):
         self.job = job
 
-    def start(self):
+    def start(self, sync=False):
         outputs = self.create_outputs()
         output_tasks = self.create_output_tasks(outputs)
-        self.start_tasks(output_tasks)
+        self.start_tasks(output_tasks, sync)
 
-    def restart(self):
+    def restart(self, sync=False):
         self.terminate_task()
+        print("Hello")
         output_tasks = self.create_output_tasks(self.job.outputs.all())
-        self.start_tasks(output_tasks)
+        self.start_tasks(output_tasks, sync)
 
-    def start_tasks(self, tasks):
+    def start_tasks(self, tasks, sync=False):
         self.update_job_status(Job.QUEUED)
-        task = group(tasks).apply_async()
-        task.save()
+        if sync:
+            task = group(tasks).apply()
+        else:
+            task = group(tasks).apply_async()
+            task.save()
         self.job.background_task_id = task.id
-        self.job.save()
+        self.job.save(update_fields=["background_task_id"])
 
     def create_outputs(self):
         job_settings = copy.deepcopy(self.job.settings)
