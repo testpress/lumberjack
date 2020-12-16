@@ -22,12 +22,6 @@ SINGLE_SEGMENT = {
 }
 
 
-class ManifestFormat(enum.Enum):
-    DASH = "dash"
-    HLS = "hls"
-    ADAPTIVE = "adaptive"
-
-
 class PackagerNode(PolitelyWaitOnFinish):
     def __init__(self, config, output_dir):
         super().__init__()
@@ -48,9 +42,8 @@ class PackagerNode(PolitelyWaitOnFinish):
         self._process = self._create_process(args, stderr=subprocess.STDOUT, stdout=None)
 
     def _setup_video_stream(self, stream) -> str:
-        print("Stream : ", stream)
         stream_dict = {
-            "in": stream.get("pipe") or stream.get("input_name"),
+            "in": stream.get("pipe") or stream.get("input"),
             "stream": "video",
         }
 
@@ -66,7 +59,7 @@ class PackagerNode(PolitelyWaitOnFinish):
 
     def _setup_audio_stream(self, stream) -> str:
         stream_dict = {
-            "in": stream.get("pipe") or stream.get("input_name"),
+            "in": stream.get("pipe") or stream.get("input"),
             "stream": "audio",
         }
 
@@ -82,7 +75,7 @@ class PackagerNode(PolitelyWaitOnFinish):
 
     def _setup_manifest_format(self) -> List[str]:
         args: List[str] = []
-        if self.config.get("format") in [ManifestFormat.DASH, ManifestFormat.ADAPTIVE]:
+        if self.config.get("format") in ["dash", "adaptive"]:
             if self.config.get("playlist_type") == "vod":
                 args += [
                     "--generate_static_live_mpd",
@@ -92,7 +85,7 @@ class PackagerNode(PolitelyWaitOnFinish):
                 os.path.join(self._output_dir, self.config.get("dash_output", "video.mpd")),
             ]
 
-        if self.config.get("format") in [ManifestFormat.HLS, ManifestFormat.ADAPTIVE]:
+        if self.config.get("format") in ["hls", "adaptive"]:
             if self.config.get("playlist_type") == "live":
                 args += [
                     "--hls_playlist_type",
