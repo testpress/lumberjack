@@ -3,7 +3,7 @@ import json
 
 from celery import chord
 
-from .tasks import VideoTranscoder, ManifestGenerator
+from .tasks import VideoTranscoderTask, ManifestGeneratorTask
 from apps.jobs.models import Output, Job
 from lumberjack.celery import app
 
@@ -23,7 +23,7 @@ class VideoTranscodeManager:
         self.start_tasks(output_tasks)
 
     def start_tasks(self, tasks):
-        task = chord(tasks)(ManifestGenerator.s(job_id=self.job.id))
+        task = chord(tasks)(ManifestGeneratorTask.s(job_id=self.job.id))
         self.save_background_task_to_job(task)
 
     def create_outputs(self):
@@ -56,10 +56,10 @@ class VideoTranscodeManager:
         if self.job.meta_data and json.loads(self.job.meta_data).get("queue"):
             meta_data = json.loads(self.job.meta_data)
             return [
-                VideoTranscoder.s(job_id=self.job.id, output_id=output.id).set(queue=meta_data.get("queue"))
+                VideoTranscoderTask.s(job_id=self.job.id, output_id=output.id).set(queue=meta_data.get("queue"))
                 for output in outputs
             ]
-        return [VideoTranscoder.s(job_id=self.job.id, output_id=output.id) for output in outputs]
+        return [VideoTranscoderTask.s(job_id=self.job.id, output_id=output.id) for output in outputs]
 
     def save_background_task_to_job(self, task):
         task.parent.save()

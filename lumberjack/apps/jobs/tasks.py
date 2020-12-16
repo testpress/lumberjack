@@ -8,28 +8,28 @@ from lumberjack.celery import app
 from .runnables import VideoTranscoderRunnable, ManifestGeneratorRunnable
 
 
-class CeleryTask(Task):
+class LumberjackTask(Task):
     runnable = None
 
     def run(self, *args, **kwargs):
         self.runnable(*args, **kwargs, task_id=self.request.id).run()
 
 
-class VideoTranscoder(CeleryTask):
+class VideoTranscoderTask(LumberjackTask):
     runnable = VideoTranscoderRunnable
 
 
-VideoTranscoder = app.register_task(VideoTranscoder())
+VideoTranscoderTask = app.register_task(VideoTranscoderTask())
 
 
-class ManifestGenerator(CeleryTask):
+class ManifestGeneratorTask(LumberjackTask):
     runnable = ManifestGeneratorRunnable
 
 
-ManifestGenerator = app.register_task(ManifestGenerator())
+ManifestGeneratorTask = app.register_task(ManifestGeneratorTask())
 
 
-class PostDataToWebhookTask(CeleryTask):
+class PostDataToWebhookTask(LumberjackTask):
     def run(self, data, url):
         data_json = json.dumps(data, cls=DjangoJSONEncoder)
 

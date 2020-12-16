@@ -9,7 +9,7 @@ from apps.ffmpeg.outputs import OutputFactory
 from apps.jobs.models import Job, Output
 
 
-class CeleryRunnable(object):
+class LumberjackRunnable(object):
     REQUIRED_ARGUMENTS = []
     OPTIONAL_ARGUMENTS = []
 
@@ -17,7 +17,7 @@ class CeleryRunnable(object):
         if self.REQUIRED_ARGUMENTS:
             for arg in self.REQUIRED_ARGUMENTS:
                 if arg not in kwargs:
-                    raise CeleryRunnableException("Relation %s is missing" % arg)
+                    raise LumberjackRunnableException("Relation %s is missing" % arg)
 
         self.__dict__.update(kwargs)
 
@@ -32,14 +32,14 @@ class CeleryRunnable(object):
         self.do_run(*args, **kwargs)
 
 
-class CeleryRunnableException(Exception):
+class LumberjackRunnableException(Exception):
     def __init__(self, message, cause=None):
         self.cause = cause
         self.message = message
-        super(CeleryRunnableException, self).__init__(message, cause)
+        super(LumberjackRunnableException, self).__init__(message, cause)
 
 
-class VideoTranscoderRunnable(CeleryRunnable):
+class VideoTranscoderRunnable(LumberjackRunnable):
     def do_run(self, *args, **kwargs):
         self.initialize()
 
@@ -120,7 +120,7 @@ class VideoTranscoderRunnable(CeleryRunnable):
         self.job.notify_webhook()
 
 
-class ManifestGeneratorRunnable(CeleryRunnable):
+class ManifestGeneratorRunnable(LumberjackRunnable):
     def do_run(self, *args, **kwargs):
         self.initialize()
         self.generate_manifest_content()
