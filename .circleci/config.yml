@@ -21,6 +21,9 @@ jobs:
           command: |
             sudo apt-get install software-properties-common
             sudo apt-get update
+      - docker/pull:
+          name: Install Shaka Packager
+          images: 'google/shaka-packager:latest'
       - run:
           name: Install FFMPEG
           command: sudo apt-get install -y ffmpeg
