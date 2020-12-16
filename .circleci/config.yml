@@ -7,7 +7,6 @@ jobs:
         environment:
           POSTGRES_DB: lumberjack
           POSTGRES_USER: lumberjack
-      - image: google/shaka-packager:latest
     steps:
       - checkout
       - restore_cache:
@@ -25,6 +24,9 @@ jobs:
       - run:
           name: Install FFMPEG
           command: sudo apt-get install -y ffmpeg
+      - run:
+          name: Install Shaka packager
+          command: sudo curl https://github.com/google/shaka-packager/releases/download/v2.4.3/packager-linux --output /usr/local/bin
       - save_cache:
           key: deps1-{{ .Branch }}-{{ checksum "lumberjack/requirements.txt" }}
           paths:
