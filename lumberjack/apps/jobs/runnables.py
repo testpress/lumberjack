@@ -65,7 +65,7 @@ class VideoTranscoderRunnable(LumberjackRunnable):
         self.update_output_as_error()
         self.stop_job()
         if not self.is_job_status_error():
-            self.set_error_status_and_notify()
+            self.update_job_as_error_and_notify()
 
     def initialize(self):
         self.job = Job.objects.get(id=self.job_id)
@@ -135,7 +135,7 @@ class VideoTranscoderRunnable(LumberjackRunnable):
     def is_job_status_error(self):
         return Job.objects.get(id=self.job.id).status == Job.ERROR
 
-    def set_error_status_and_notify(self):
+    def update_job_as_error_and_notify(self):
         self.job.status = Job.ERROR
         self.job.save()
         self.job.notify_webhook()
