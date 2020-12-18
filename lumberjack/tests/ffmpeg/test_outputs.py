@@ -4,17 +4,17 @@ from moto import mock_s3
 
 from django.test import SimpleTestCase
 
-from apps.ffmpeg.outputs import OutputFactory, FileStorage, S3
+from apps.ffmpeg.outputs import OutputFileFactory, FileStorage, S3
 
 
 class TestOutputFactory(SimpleTestCase):
     def test_factory_should_create_s3_storage_for_s3_url(self):
-        input_options = OutputFactory.create("s3://bucket/key")
+        input_options = OutputFileFactory.create("s3://bucket/key")
 
         self.assertTrue(isinstance(input_options, S3))
 
     def test_factory_should_create_file_storage_instance_for_other_url(self):
-        input_options = OutputFactory.create("file://a/b/c")
+        input_options = OutputFileFactory.create("file://a/b/c")
 
         self.assertTrue(isinstance(input_options, FileStorage))
 

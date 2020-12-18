@@ -11,7 +11,7 @@ from botocore.exceptions import ClientError
 from django.conf import settings
 
 
-class OutputFactory:
+class OutputFileFactory:
     @staticmethod
     def create(url, **options):
         if parse_uri(url).scheme == "s3":

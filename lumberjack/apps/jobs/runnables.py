@@ -5,7 +5,7 @@ from django.utils.timezone import now
 from django.db import transaction
 
 from apps.ffmpeg.main import FFMpegManager, FFMpegException
-from apps.ffmpeg.outputs import OutputFactory
+from apps.ffmpeg.outputs import OutputFileFactory
 from apps.jobs.models import Job, Output
 
 
@@ -154,7 +154,7 @@ class ManifestGeneratorRunnable(LumberjackRunnable):
         return "#EXTM3U\n#EXT-X-VERSION:3\n"
 
     def upload(self):
-        storage = OutputFactory.create(self.job.output_url)
+        storage = OutputFileFactory.create(self.job.output_url)
         storage.save_text(self.manifest_content, self.job.output_url)
 
     def get_media_details(self):

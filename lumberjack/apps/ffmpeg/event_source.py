@@ -2,7 +2,7 @@ import threading
 import abc
 import re
 
-from apps.ffmpeg.outputs import OutputFactory
+from apps.ffmpeg.outputs import OutputFileFactory
 
 
 def convert_to_sec(time):
@@ -46,7 +46,7 @@ class ProgressObserver(Observer):
 
 class OutputFileObserver(Observer):
     def __init__(self, url, directory):
-        self.output = OutputFactory.create(url)
+        self.output = OutputFileFactory.create(url)
         self.directory = directory
 
     def notify(self, is_transcode_completed):
