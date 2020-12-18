@@ -1,7 +1,5 @@
 import json
 
-from celery import group
-
 from apps.jobs.models import Job
 from lumberjack.celery import app
 from .tasks import VideoTranscoderTask
@@ -12,24 +10,22 @@ class VideoTranscoder:
         self.job = job
 
     def start(self, sync=False):
-        outputs = self.job.create_outputs()
-        output_tasks = self.create_output_tasks(outputs)
-        self.start_tasks(output_tasks, sync)
+        self.job.create_outputs()
+        self.start_tasks(sync)
 
     def restart(self, sync=False):
-        self.terminate_task()
-        output_tasks = self.create_output_tasks(self.job.outputs.all())
-        self.start_tasks(output_tasks, sync)
+        self.stop()
+        self.start_tasks(sync)
 
-    def start_tasks(self, tasks, sync=False):
+    def start_tasks(self, sync=False):
         self.update_job_status(Job.QUEUED)
-        if sync:
-            task = group(tasks).apply()
-        else:
-            task = group(tasks).apply_async()
-            task.save()
-        self.job.background_task_id = task.id
-        self.job.save(update_fields=["background_task_id"])
+        for output in self.job.outputs.all():
+            if sync:
+                task = VideoTranscoderTask.apply(kwargs={"job_id": self.job.id, "output_id": output.id})
+            else:
+                task = VideoTranscoderTask.apply_async(kwargs={"job_id": self.job.id, "output_id": output.id})
+            output.background_task_id = task.task_id
+            output.save()
 
     def get_output_folder_path(self, output_settings):
         return self.job.settings["destination"] + "/" + output_settings["name"]
@@ -51,10 +47,6 @@ class VideoTranscoder:
         if self.job.status == Job.COMPLETED:
             return
 
+        for output in self.job.outputs.all():
+            app.control.revoke(output.background_task_id, terminate=True, signal="SIGUSR1")
         self.update_job_status(Job.CANCELLED)
-        self.terminate_task()
-
-    def terminate_task(self):
-        task = app.GroupResult.restore(str(self.job.background_task_id))
-        if task:
-            task.revoke(terminate=True, signal="SIGUSR1")
