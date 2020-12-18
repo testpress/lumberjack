@@ -47,7 +47,7 @@ class VideoTranscoderRunnable(LumberjackRunnable):
 
         try:
             transcoder.run()
-            self.update_output_status_and_time(Output.COMPLETED, end=now())
+            self.update_output_as_completed()
         except FFMpegException as error:
             self.handle_ffmpeg_exception(error)
         except SoftTimeLimitExceeded:
@@ -62,7 +62,7 @@ class VideoTranscoderRunnable(LumberjackRunnable):
 
     def handle_ffmpeg_exception(self, error):
         self.save_exception(error)
-        self.update_output_status_and_time(Output.ERROR, end=now())
+        self.update_output_as_error()
         self.stop_job()
         if not self.is_job_status_error():
             self.set_error_status_and_notify()
@@ -76,7 +76,7 @@ class VideoTranscoderRunnable(LumberjackRunnable):
             self.job.start_time = now()
             self.job.save()
             self.job.notify_webhook()
-        self.update_output_status_and_time(Output.PROCESSING, start=now())
+        self.update_output_as_processing()
 
     def is_transcoding_completed(self):
         return not self.job.outputs.exclude(status=Output.COMPLETED).exists()
@@ -91,16 +91,6 @@ class VideoTranscoderRunnable(LumberjackRunnable):
     def notify_webhook(self):
         self.job.refresh_from_db()
         self.job.notify_webhook()
-
-    def update_output_status_and_time(self, status, start=None, end=None):
-        if start:
-            self.output.start_time = start
-
-        if end:
-            self.output.end_time = end
-
-        self.output.status = status
-        self.output.save()
 
     def is_multiple_of_five(self, percentage):
         return (percentage % 5) == 0 and self.output.progress != percentage
@@ -120,6 +110,21 @@ class VideoTranscoderRunnable(LumberjackRunnable):
 
     def set_output_status_cancelled(self):
         self.output.status = Output.CANCELLED
+        self.output.save()
+
+    def update_output_as_processing(self):
+        self.output.status = Output.PROCESSING
+        self.output.start_time = now()
+        self.output.save()
+
+    def update_output_as_completed(self):
+        self.output.status = Output.COMPLETED
+        self.output.end_time = now()
+        self.output.save()
+
+    def update_output_as_error(self):
+        self.output.status = Output.ERROR
+        self.output.end_time = now()
         self.output.save()
 
     def stop_job(self):
