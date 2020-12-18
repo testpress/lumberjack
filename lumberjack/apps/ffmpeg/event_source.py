@@ -44,7 +44,7 @@ class ProgressObserver(Observer):
         return FFmpegEvent.PROGRESS_EVENT
 
 
-class OutputObserver(Observer):
+class OutputFileObserver(Observer):
     def __init__(self, url, directory):
         self.output = OutputFactory.create(url)
         self.directory = directory
