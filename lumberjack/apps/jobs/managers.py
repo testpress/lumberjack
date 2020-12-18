@@ -23,21 +23,15 @@ class VideoTranscoder:
             if sync:
                 task = VideoTranscoderTask.apply(kwargs={"job_id": self.job.id, "output_id": output.id})
             else:
-                task = VideoTranscoderTask.apply_async(kwargs={"job_id": self.job.id, "output_id": output.id})
+                queue = "transcoding"
+                if self.job.meta_data and json.loads(self.job.meta_data).get("queue"):
+                    meta_data = json.loads(self.job.meta_data)
+                    queue = meta_data.get("queue", queue)
+                task = VideoTranscoderTask.apply_async(
+                    kwargs={"job_id": self.job.id, "output_id": output.id}, queue=queue
+                )
             output.background_task_id = task.task_id
             output.save()
-
-    def get_output_folder_path(self, output_settings):
-        return self.job.settings["destination"] + "/" + output_settings["name"]
-
-    def create_output_tasks(self, outputs):
-        if self.job.meta_data and json.loads(self.job.meta_data).get("queue"):
-            meta_data = json.loads(self.job.meta_data)
-            return [
-                VideoTranscoderTask.s(job_id=self.job.id, output_id=output.id).set(queue=meta_data.get("queue"))
-                for output in outputs
-            ]
-        return [VideoTranscoderTask.s(job_id=self.job.id, output_id=output.id) for output in outputs]
 
     def update_job_status(self, status):
         self.job.status = status
