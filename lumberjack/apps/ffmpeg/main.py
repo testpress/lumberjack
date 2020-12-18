@@ -10,7 +10,7 @@ from apps.ffmpeg.utils import mkdir
 from apps.ffmpeg.event_source import EventSource, ProgressObserver, OutputObserver
 
 
-class Manager:
+class FFMpegManager:
     def __init__(self, options, monitor: callable = None):
         self.monitor = monitor
         self.options = options

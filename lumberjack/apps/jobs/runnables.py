@@ -5,7 +5,7 @@ from django.utils.timezone import now
 from django.db import transaction
 
 from lumberjack.celery import app
-from apps.ffmpeg.main import Manager, FFMpegException
+from apps.ffmpeg.main import FFMpegManager, FFMpegException
 from apps.ffmpeg.outputs import OutputFactory
 from apps.jobs.models import Job, Output
 
@@ -107,7 +107,7 @@ class VideoTranscoderRunnable(LumberjackRunnable):
         self.output.save()
 
     def initialize_transcoder(self):
-        return Manager(self.output.settings, self.update_progress)
+        return FFMpegManager(self.output.settings, self.update_progress)
 
     def is_multiple_of_five(self, percentage):
         return (percentage % 5) == 0 and self.output.progress != percentage
