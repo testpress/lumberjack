@@ -43,12 +43,6 @@ class LumberjackRunnableException(Exception):
 class VideoTranscoderRunnable(LumberjackRunnable):
     def do_run(self, *args, **kwargs):
         self.initialize()
-
-        if self.is_job_status_not_updated():
-            self.update_job_start_time_and_initial_status()
-            self.job.notify_webhook()
-        self.update_output_status_and_time(Output.PROCESSING, start=now())
-
         transcoder = self.initialize_transcoder()
 
         try:
@@ -74,13 +68,12 @@ class VideoTranscoderRunnable(LumberjackRunnable):
         self.job = Job.objects.get(id=self.job_id)
         self.output = Output.objects.get(id=self.output_id)
 
-    def is_job_status_not_updated(self):
-        return self.job.status != Job.PROCESSING
-
-    def update_job_start_time_and_initial_status(self):
-        self.job.status = Job.PROCESSING
-        self.job.start_time = now()
-        self.job.save()
+        if self.job.status != Job.PROCESSING:
+            self.job.status = Job.PROCESSING
+            self.job.start_time = now()
+            self.job.save()
+            self.job.notify_webhook()
+        self.update_output_status_and_time(Output.PROCESSING, start=now())
 
     def is_transcoding_completed(self):
         return not self.job.outputs.exclude(status=Output.COMPLETED).exists()
