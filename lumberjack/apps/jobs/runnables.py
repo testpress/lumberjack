@@ -49,11 +49,7 @@ class VideoTranscoderRunnable(LumberjackRunnable):
             transcoder.run()
             self.update_output_status_and_time(Output.COMPLETED, end=now())
         except FFMpegException as error:
-            self.save_exception(error)
-            self.update_output_status_and_time(Output.ERROR, end=now())
-            self.stop_job()
-            if not self.is_job_status_error():
-                self.set_error_status_and_notify()
+            self.handle_ffmpeg_exception(error)
         except SoftTimeLimitExceeded:
             self.set_output_status_cancelled()
             transcoder.stop()
@@ -63,6 +59,13 @@ class VideoTranscoderRunnable(LumberjackRunnable):
                 self.complete_job()
                 self.notify_webhook()
                 self.generate_manifest()
+
+    def handle_ffmpeg_exception(self, error):
+        self.save_exception(error)
+        self.update_output_status_and_time(Output.ERROR, end=now())
+        self.stop_job()
+        if not self.is_job_status_error():
+            self.set_error_status_and_notify()
 
     def initialize(self):
         self.job = Job.objects.get(id=self.job_id)
