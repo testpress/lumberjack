@@ -51,7 +51,7 @@ class VideoTranscoderRunnable(LumberjackRunnable):
         except FFMpegException as error:
             self.handle_ffmpeg_exception(error)
         except SoftTimeLimitExceeded:
-            self.set_output_status_cancelled()
+            self.update_output_as_cancelled()
             transcoder.stop()
 
         with transaction.atomic():
@@ -108,7 +108,7 @@ class VideoTranscoderRunnable(LumberjackRunnable):
         self.output.error_message = error
         self.output.save()
 
-    def set_output_status_cancelled(self):
+    def update_output_as_cancelled(self):
         self.output.status = Output.CANCELLED
         self.output.save()
 
