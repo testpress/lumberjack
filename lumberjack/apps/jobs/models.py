@@ -1,5 +1,6 @@
 import uuid
 import os
+import copy
 
 from django.db import models
 
@@ -50,6 +51,29 @@ class Job(TimeStampedModel, TimeFramedModel, JobNotifierMixin):
         progress_dict = self.outputs.aggregate(models.Avg("progress"))
         self.progress = progress_dict["progress__avg"]
         self.save(update_fields=["progress"])
+
+    def create_outputs(self):
+        job_settings = copy.deepcopy(self.settings)
+        outputs = []
+        for output_settings in job_settings.pop("outputs"):
+            output_settings["url"] = self.settings["destination"] + "/" + output_settings["name"]
+            job_settings["output"] = output_settings
+
+            output = Output(
+                name=output_settings["name"],
+                video_encoder=output_settings["video"]["codec"],
+                video_bitrate=output_settings["video"]["bitrate"],
+                video_preset=output_settings["video"]["preset"],
+                audio_encoder=output_settings["audio"]["codec"],
+                audio_bitrate=output_settings["audio"]["bitrate"],
+                width=output_settings["video"]["width"],
+                height=output_settings["video"]["height"],
+                settings=job_settings,
+                job=self,
+            )
+            output.save()
+            outputs.append(output)
+        return outputs
 
     def populate_settings(self):
         if self.template is not None:
