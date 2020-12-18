@@ -91,10 +91,9 @@ class EventSource(Observable):
     def run(self):
         while True:
             events = self.generate_events_from_log()
-            if events:
-                for event in events:
-                    self.notify(event)
-            else:
+            for event in events:
+                self.notify(event)
+            if not events:
                 self.notify_transcode_completed()
                 break
 
