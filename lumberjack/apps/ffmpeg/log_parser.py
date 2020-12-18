@@ -102,7 +102,7 @@ class LogParser(Observable):
             events = []
             log = self.process.stdout.readline().strip()
             if self.is_stdout_finished(log):
-                return False
+                return events
 
             percentage = self.get_percentage(log)
             events.append(self.create_progress_event(percentage))
