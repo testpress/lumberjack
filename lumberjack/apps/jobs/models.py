@@ -1,11 +1,13 @@
 import uuid
 import os
 import copy
+import json
 
 from django.db import models
 from django.utils.translation import ugettext_lazy as _
 
 from .mixins import JobNotifierMixin
+from lumberjack.celery import app
 
 from model_utils.models import TimeStampedModel, TimeFramedModel
 from model_utils.fields import StatusField
@@ -94,6 +96,27 @@ class Job(TimeStampedModel, JobNotifierMixin):
             settings.update({"encryption": {"key": self.encryption_key, "url": self.key_url}})
 
         self.settings = settings
+
+    def start_trascoding(self, sync=False):
+        self.status = Job.QUEUED
+        self.save()
+
+        queue = "transcoding"
+        if self.meta_data and json.loads(self.meta_data).get("queue"):
+            meta_data = json.loads(self.meta_data)
+            queue = meta_data.get("queue", queue)
+
+        for output in self.outputs.all():
+            output.start_task(queue, sync)
+
+    def stop(self):
+        if self.status == Job.COMPLETED:
+            return
+
+        for output in self.outputs.all():
+            app.control.revoke(output.background_task_id, terminate=True, signal="SIGUSR1")
+        self.status = Job.CANCELLED
+        self.save()
 
     def save(self, *args, **kwargs):
         self.populate_settings()

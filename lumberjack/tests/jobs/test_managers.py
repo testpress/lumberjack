@@ -58,7 +58,7 @@ class TestVideoTranscodeManager(TestCase, Mixin):
         self.assertEqual(2, self.job.outputs.count())
         self.assertEqual(Output.objects.filter(job_id=self.job.id).first(), self.job.outputs.first())
 
-    @mock.patch("apps.jobs.managers.app.control")
+    @mock.patch("apps.jobs.models.app.control")
     def test_stop_should_revoke_background_task(self, mock_celery_control):
         self.manager.stop()
 
@@ -66,7 +66,7 @@ class TestVideoTranscodeManager(TestCase, Mixin):
         mock_celery_control.revoke.assert_called()
 
     @mock.patch("apps.jobs.tasks.VideoTranscoderTask")
-    @mock.patch("apps.jobs.managers.app.control")
+    @mock.patch("apps.jobs.models.app.control")
     def test_restart_job_should_stop_running_task_and_start_again(self, mock_celery_control, mock_celery_task):
         mock_celery_task.apply_async().task_id = "4c1761d8-c0cd-4068-a997-ccab60592943"
         self.manager.restart()
@@ -81,7 +81,7 @@ class TestVideoTranscodeManager(TestCase, Mixin):
         self.job.meta_data = json.dumps({"queue": "priority"})
         self.job.save()
         self.create_output(job=self.job)
-        self.manager.start_tasks()
+        self.manager.start()
 
         mock_celery_task.apply_async.assert_called_with(
             kwargs={"job_id": self.job.id, "output_id": self.job.outputs.last().id}, queue="priority"
@@ -93,7 +93,7 @@ class TestVideoTranscodeManager(TestCase, Mixin):
         self.job.meta_data = None
         self.job.save()
         self.create_output(job=self.job)
-        self.manager.start_tasks()
+        self.manager.start()
 
         mock_celery_task.apply_async.assert_called_with(
             kwargs={"job_id": self.job.id, "output_id": self.job.outputs.last().id}, queue="transcoding"
