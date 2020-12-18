@@ -4,7 +4,6 @@ from django.shortcuts import get_object_or_404
 from django.utils.timezone import now
 from django.db import transaction
 
-from lumberjack.celery import app
 from apps.ffmpeg.main import FFMpegManager, FFMpegException
 from apps.ffmpeg.outputs import OutputFactory
 from apps.jobs.models import Job, Output
