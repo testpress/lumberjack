@@ -11,12 +11,14 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
+
 from typing import List
 
 from django.conf import settings
 
-from .cloud import CloudNode
 from .base import NodeBase, ProcessStatus
+from .cloud import CloudNode
+from .transcoder import TranscoderNode
 
 
 class ControllerNode(object):
@@ -29,11 +31,16 @@ class ControllerNode(object):
     def __exit__(self, *unused_args) -> None:
         self.stop()
 
-    def start(self, config) -> "ControllerNode":
+    def start(self, config, progress_callback=None) -> "ControllerNode":
+
+        if self._nodes:
+            raise RuntimeError("Controller already started!")
+
         local_path = "{}/{}/{}".format(
             settings.TRANSCODED_VIDEOS_PATH, config.get("id"), config.get("output").get("name")
         )
         self._nodes.append(CloudNode(local_path, config.get("output")["url"]))
+        self._nodes.append(TranscoderNode(config, progress_callback))
         for node in self._nodes:
             node.start()
         return self
