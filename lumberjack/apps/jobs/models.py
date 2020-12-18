@@ -97,7 +97,7 @@ class Job(TimeStampedModel, JobNotifierMixin):
 
         self.settings = settings
 
-    def start_trascoding(self, sync=False):
+    def start_transcoding(self, sync=False):
         self.status = Job.QUEUED
         self.save()
 

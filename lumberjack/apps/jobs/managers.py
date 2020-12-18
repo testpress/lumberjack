@@ -4,11 +4,11 @@ class VideoTranscoder:
 
     def start(self, sync=False):
         self.job.create_outputs()
-        self.job.start_trascoding(sync)
+        self.job.start_transcoding(sync)
 
     def restart(self, sync=False):
         self.job.stop()
-        self.job.start_trascoding(sync)
+        self.job.start_transcoding(sync)
 
     def stop(self):
         self.job.stop()
