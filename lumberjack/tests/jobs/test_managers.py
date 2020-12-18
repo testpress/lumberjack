@@ -76,22 +76,8 @@ class TestVideoTranscodeManager(TestCase, Mixin):
         self.assertEqual("4c1761d8-c0cd-4068-a997-ccab60592943", str(self.job.outputs.first().background_task_id))
 
     @mock.patch("apps.jobs.tasks.VideoTranscoderTask")
-    def test_outputs_should_run_in_specific_queue_if_provided_in_job_meta(self, mock_celery_task):
+    def test_outputs_should_not_have_queue_if_not_provided(self, mock_celery_task):
         mock_celery_task.apply_async().task_id = 12
-        self.job.meta_data = json.dumps({"queue": "priority"})
-        self.job.save()
-        self.create_output(job=self.job)
-        self.manager.start()
-
-        mock_celery_task.apply_async.assert_called_with(
-            kwargs={"job_id": self.job.id, "output_id": self.job.outputs.last().id}, queue="priority"
-        )
-
-    @mock.patch("apps.jobs.tasks.VideoTranscoderTask")
-    def test_outputs_should_not_have_queue_if_not_provided_in_job_meta(self, mock_celery_task):
-        mock_celery_task.apply_async().task_id = 12
-        self.job.meta_data = None
-        self.job.save()
         self.create_output(job=self.job)
         self.manager.start()
 

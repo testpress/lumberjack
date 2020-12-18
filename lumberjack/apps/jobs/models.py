@@ -97,14 +97,9 @@ class Job(TimeStampedModel, JobNotifierMixin):
 
         self.settings = settings
 
-    def start(self, sync=False):
+    def start(self, sync=False, queue="transcoding"):
         self.status = Job.QUEUED
         self.save()
-
-        queue = "transcoding"
-        if self.meta_data and json.loads(self.meta_data).get("queue"):
-            meta_data = json.loads(self.meta_data)
-            queue = meta_data.get("queue", queue)
 
         for output in self.outputs.all():
             output.start_task(queue, sync)
@@ -115,6 +110,7 @@ class Job(TimeStampedModel, JobNotifierMixin):
 
         for output in self.outputs.all():
             output.stop_task()
+
         self.status = Job.CANCELLED
         self.save()
 
@@ -181,6 +177,7 @@ class Output(AbstractOutput):
             task = VideoTranscoderTask.apply(kwargs={"job_id": self.job.id, "output_id": self.id})
         else:
             task = VideoTranscoderTask.apply_async(kwargs={"job_id": self.job.id, "output_id": self.id}, queue=queue)
+
         self.background_task_id = task.task_id
         self.save()
 
