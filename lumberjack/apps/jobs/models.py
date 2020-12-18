@@ -146,6 +146,16 @@ class Output(AbstractOutput, TimeFramedModel):
     def resolution(self):
         return f"{self.width}x{self.height}"
 
+    def start_task(self, sync=False):
+        from .tasks import VideoTranscoderTask
+
+        if sync:
+            task = VideoTranscoderTask.apply(kwargs={"job_id": self.job.id, "output_id": self.id})
+        else:
+            task = VideoTranscoderTask.apply_async(kwargs={"job_id": self.job.id, "output_id": self.id})
+        self.background_task_id = task.task_id
+        self.save()
+
     def __str__(self):
         if self.status == self.PROCESSING:
             return f"{self.name} - {self.job_id} - {self.progress}% Transcoded"

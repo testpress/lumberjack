@@ -1,8 +1,5 @@
-import json
-
 from apps.jobs.models import Job
 from lumberjack.celery import app
-from .tasks import VideoTranscoderTask
 
 
 class VideoTranscoder:
@@ -20,24 +17,7 @@ class VideoTranscoder:
     def start_tasks(self, sync=False):
         self.update_job_status(Job.QUEUED)
         for output in self.job.outputs.all():
-            if sync:
-                task = VideoTranscoderTask.apply(kwargs={"job_id": self.job.id, "output_id": output.id})
-            else:
-                task = VideoTranscoderTask.apply_async(kwargs={"job_id": self.job.id, "output_id": output.id})
-            output.background_task_id = task.task_id
-            output.save()
-
-    def get_output_folder_path(self, output_settings):
-        return self.job.settings["destination"] + "/" + output_settings["name"]
-
-    def create_output_tasks(self, outputs):
-        if self.job.meta_data and json.loads(self.job.meta_data).get("queue"):
-            meta_data = json.loads(self.job.meta_data)
-            return [
-                VideoTranscoderTask.s(job_id=self.job.id, output_id=output.id).set(queue=meta_data.get("queue"))
-                for output in outputs
-            ]
-        return [VideoTranscoderTask.s(job_id=self.job.id, output_id=output.id) for output in outputs]
+            output.start_task(sync)
 
     def update_job_status(self, status):
         self.job.status = status
