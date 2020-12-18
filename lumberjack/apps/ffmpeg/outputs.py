@@ -16,7 +16,7 @@ class OutputFileFactory:
     def create(url, **options):
         if parse_uri(url).scheme == "s3":
             return S3(url)
-        return FileStorage(url)
+        return LocalFileStorage(url)
 
 
 class Storage(abc.ABC):
@@ -90,7 +90,7 @@ class S3(Storage):
         self.client.upload_fileobj(file_obj, s3_path.bucket_id, s3_path.key_id, ExtraArgs={"ACL": "public-read"})
 
 
-class FileStorage(Storage):
+class LocalFileStorage(Storage):
     def __init__(self, destination_directory):
         self.destination_directory = destination_directory
         self.is_being_moved = False
