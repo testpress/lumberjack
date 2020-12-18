@@ -31,48 +31,49 @@ class TestVideoTranscodeManager(TestCase, Mixin):
 
     def setUp(self) -> None:
         self.job = self.create_job(settings=self.job_settings)
+        self.create_output(self.job)
         self.manager = VideoTranscoder(self.job)
 
-    @mock.patch("apps.jobs.managers.group")
+    @mock.patch("apps.jobs.managers.VideoTranscoderTask")
     def test_start_should_start_background_task(self, mock_celery_group):
-        mock_celery_group.return_value.apply_async().id = 12
+        mock_celery_group.apply_async().task_id = "4c1761d8-c0cd-4068-a997-ccab60592943"
         self.manager.start()
 
-        mock_celery_group.return_value.apply_async.assert_called()
-        self.assertEqual(12, self.job.background_task_id)
+        mock_celery_group.apply_async.assert_called()
+        self.assertEqual("4c1761d8-c0cd-4068-a997-ccab60592943", str(self.job.outputs.first().background_task_id))
 
-    @mock.patch("apps.jobs.managers.group")
+    @mock.patch("apps.jobs.managers.VideoTranscoderTask")
     def test_start_should_create_outputs_for_job(self, mock_celery_group):
-        mock_celery_group.return_value.apply_async().id = 12
+        mock_celery_group.apply_async().task_id = 12
         self.manager.start()
 
-        self.assertEqual(1, self.job.outputs.count())
+        self.assertEqual(2, self.job.outputs.count())
         self.assertEqual(Output.objects.filter(job_id=self.job.id).first(), self.job.outputs.first())
 
-    @mock.patch("apps.jobs.managers.group")
+    @mock.patch("apps.jobs.managers.VideoTranscoderTask")
     def test_start_with_sync_should_should_run_synchronously(self, mock_celery_group):
-        mock_celery_group.return_value.apply().id = 12
+        mock_celery_group.apply().task_id = 12
         self.manager.start(sync=True)
 
-        self.assertEqual(1, self.job.outputs.count())
+        self.assertEqual(2, self.job.outputs.count())
         self.assertEqual(Output.objects.filter(job_id=self.job.id).first(), self.job.outputs.first())
 
-    @mock.patch("apps.jobs.managers.app.GroupResult")
-    def test_stop_should_revoke_background_task(self, mock_group_result):
+    @mock.patch("apps.jobs.managers.app.control")
+    def test_stop_should_revoke_background_task(self, mock_celery_control):
         self.manager.stop()
 
         self.assertEqual(Job.CANCELLED, self.job.status)
-        mock_group_result.restore().revoke.assert_called()
+        mock_celery_control.revoke.assert_called()
 
-    @mock.patch("apps.jobs.managers.group")
-    @mock.patch("apps.jobs.managers.app.GroupResult")
-    def test_restart_job_should_stop_running_task_and_start_again(self, mock_group_result, mock_celery_group):
-        mock_celery_group.return_value.apply_async().id = 12
+    @mock.patch("apps.jobs.managers.VideoTranscoderTask")
+    @mock.patch("apps.jobs.managers.app.control")
+    def test_restart_job_should_stop_running_task_and_start_again(self, mock_celery_control, mock_celery_group):
+        mock_celery_group.apply_async().task_id = "4c1761d8-c0cd-4068-a997-ccab60592943"
         self.manager.restart()
 
-        mock_group_result.restore().revoke.assert_called()
-        mock_celery_group.return_value.apply_async.assert_called()
-        self.assertEqual(12, self.job.background_task_id)
+        mock_celery_control.revoke.assert_called()
+        mock_celery_group.apply_async.assert_called()
+        self.assertEqual("4c1761d8-c0cd-4068-a997-ccab60592943", str(self.job.outputs.first().background_task_id))
 
     def test_outputs_should_run_in_specific_queue_if_provided_in_job_meta(self):
         self.job.meta_data = json.dumps({"queue": "priority"})
