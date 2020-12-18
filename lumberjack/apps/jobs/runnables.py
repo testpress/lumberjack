@@ -43,7 +43,7 @@ class LumberjackRunnableException(Exception):
 class VideoTranscoderRunnable(LumberjackRunnable):
     def do_run(self, *args, **kwargs):
         self.initialize()
-        transcoder = self.initialize_transcoder()
+        transcoder = FFMpegManager(self.output.settings, self.update_progress)
 
         try:
             transcoder.run()
@@ -98,9 +98,6 @@ class VideoTranscoderRunnable(LumberjackRunnable):
 
         self.output.status = status
         self.output.save()
-
-    def initialize_transcoder(self):
-        return FFMpegManager(self.output.settings, self.update_progress)
 
     def is_multiple_of_five(self, percentage):
         return (percentage % 5) == 0 and self.output.progress != percentage
