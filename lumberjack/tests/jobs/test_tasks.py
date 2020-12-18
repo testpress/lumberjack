@@ -67,13 +67,12 @@ class TestVideoTranscoder(Mixin, TestCase):
         self.assertEqual(self.job.progress, 20)
 
     @mock.patch("apps.jobs.runnables.Manager", **{"return_value.run.side_effect": FFMpegException()})
-    @mock.patch("apps.jobs.models.app.GroupResult")
-    def test_task_should_be_stopped_in_case_of_exception(self, mock_group_result, mock_ffmpeg_manager):
-        task_mock = mock.MagicMock()
-        mock_group_result.restore.return_value = [task_mock]
+    @mock.patch("apps.jobs.models.app.control")
+    def test_task_should_be_stopped_in_case_of_exception(self, mock_celery_control, mock_ffmpeg_manager):
+        self.create_output()
         self.video_transcoder.do_run()
 
-        task_mock.revoke.assert_called_with(terminate=True, signal="SIGUSR1")
+        mock_celery_control.revoke.assert_called_with(None, terminate=True, signal="SIGUSR1")
         self.assertEqual(self.video_transcoder.job.status, Job.ERROR)
 
     @mock.patch("apps.jobs.runnables.Manager", **{"return_value.run.side_effect": SoftTimeLimitExceeded()})
