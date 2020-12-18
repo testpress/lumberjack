@@ -7,7 +7,7 @@ from django.conf import settings
 
 from apps.ffmpeg.command_generator import CommandGenerator
 from apps.ffmpeg.utils import mkdir
-from apps.ffmpeg.event_source import EventSource, ProgressObserver, OutputFileObserver
+from apps.ffmpeg.log_parser import LogParser, ProgressObserver, OutputFileObserver
 
 
 class FFMpegManager:
@@ -22,9 +22,9 @@ class FFMpegManager:
     def run(self):
         self.create_observers()
         self.executor = Executor(self.options)
-        self.event_source = EventSource(self.executor.process)
+        self.log_parser = LogParser(self.executor.process)
         self.register_observers()
-        self.event_source.start()
+        self.log_parser.start()
         self.executor.run()
 
     def stop(self):
@@ -35,8 +35,8 @@ class FFMpegManager:
         self.output_observer = OutputFileObserver(self.options.get("output")["url"], self.local_path)
 
     def register_observers(self):
-        self.event_source.register(self.output_observer)
-        self.event_source.register(self.progress_observer)
+        self.log_parser.register(self.output_observer)
+        self.log_parser.register(self.progress_observer)
 
 
 class Executor:

@@ -80,7 +80,7 @@ class Observable:
                 observer.notify(event.data)
 
 
-class EventSource(Observable):
+class LogParser(Observable):
     def __init__(self, process):
         super().__init__()
         self.duration = 1

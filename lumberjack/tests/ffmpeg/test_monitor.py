@@ -1,6 +1,6 @@
 from django.test import SimpleTestCase
 
-from apps.ffmpeg.event_source import EventSource, FFmpegEvent, Observer, ProgressObserver
+from apps.ffmpeg.log_parser import LogParser, FFmpegEvent, Observer, ProgressObserver
 from .utils import ProcessMock
 
 
@@ -20,17 +20,17 @@ class ObserverMock(Observer):
 class TestMonitor(SimpleTestCase):
     def test_observer_should_get_called_for_correct_event(self):
         self.observer = ObserverMock(FFmpegEvent.PROGRESS_EVENT)
-        event_source = EventSource(ProcessMock())
-        event_source.register(self.observer)
-        event_source.run()
+        log_parser = LogParser(ProcessMock())
+        log_parser.register(self.observer)
+        log_parser.run()
 
         self.assertTrue(self.observer.called)
 
     def test_output_event_should_get_triggered_once_log_is_finished(self):
         self.output_event_observer = ObserverMock(FFmpegEvent.OUTPUT_EVENT)
-        event_source = EventSource(ProcessMock())
-        event_source.register(self.output_event_observer)
-        event_source.run()
+        log_parser = LogParser(ProcessMock())
+        log_parser.register(self.output_event_observer)
+        log_parser.run()
 
         self.assertTrue(self.output_event_observer.called)
 
