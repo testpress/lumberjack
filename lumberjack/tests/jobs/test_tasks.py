@@ -67,7 +67,7 @@ class TestVideoTranscoder(Mixin, TestCase):
         self.assertEqual(self.job.progress, 20)
 
     @mock.patch("apps.jobs.runnables.Manager", **{"return_value.run.side_effect": FFMpegException()})
-    @mock.patch("apps.jobs.managers.app.GroupResult")
+    @mock.patch("apps.jobs.models.app.GroupResult")
     def test_task_should_be_stopped_in_case_of_exception(self, mock_group_result, mock_ffmpeg_manager):
         task_mock = mock.MagicMock()
         mock_group_result.restore.return_value = [task_mock]
@@ -77,7 +77,7 @@ class TestVideoTranscoder(Mixin, TestCase):
         self.assertEqual(self.video_transcoder.job.status, Job.ERROR)
 
     @mock.patch("apps.jobs.runnables.Manager", **{"return_value.run.side_effect": SoftTimeLimitExceeded()})
-    @mock.patch("apps.jobs.managers.app.GroupResult")
+    @mock.patch("apps.jobs.models.app.GroupResult")
     def test_task_should_stop_ffmpeg_process_in_case_of_soft_time_limit_exception(
         self, mock_group_result, mock_ffmpeg_manager
     ):

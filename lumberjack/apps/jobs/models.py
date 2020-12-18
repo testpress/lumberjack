@@ -1,11 +1,13 @@
 import uuid
 import os
 import copy
+import json
 
 from django.db import models
 from django.utils.translation import ugettext_lazy as _
 
 from .mixins import JobNotifierMixin
+from lumberjack.celery import app
 
 from model_utils.models import TimeStampedModel, TimeFramedModel
 from model_utils.fields import StatusField
@@ -95,6 +97,23 @@ class Job(TimeStampedModel, JobNotifierMixin):
 
         self.settings = settings
 
+    def start(self, sync=False, queue="transcoding"):
+        self.status = Job.QUEUED
+        self.save()
+
+        for output in self.outputs.all():
+            output.start_task(queue, sync)
+
+    def stop(self):
+        if self.status == Job.COMPLETED:
+            return
+
+        for output in self.outputs.all():
+            output.stop_task()
+
+        self.status = Job.CANCELLED
+        self.save()
+
     def save(self, *args, **kwargs):
         self.populate_settings()
         super().save(*args, **kwargs)
@@ -150,6 +169,20 @@ class Output(AbstractOutput):
     @property
     def resolution(self):
         return f"{self.width}x{self.height}"
+
+    def start_task(self, queue, sync=False):
+        from .tasks import VideoTranscoderTask
+
+        if sync:
+            task = VideoTranscoderTask.apply(kwargs={"job_id": self.job.id, "output_id": self.id})
+        else:
+            task = VideoTranscoderTask.apply_async(kwargs={"job_id": self.job.id, "output_id": self.id}, queue=queue)
+
+        self.background_task_id = task.task_id
+        self.save()
+
+    def stop_task(self):
+        app.control.revoke(self.background_task_id, terminate=True, signal="SIGUSR1")
 
     def __str__(self):
         if self.status == self.PROCESSING:
