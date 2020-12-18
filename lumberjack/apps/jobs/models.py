@@ -97,7 +97,7 @@ class Job(TimeStampedModel, JobNotifierMixin):
 
         self.settings = settings
 
-    def start_transcoding(self, sync=False):
+    def start(self, sync=False):
         self.status = Job.QUEUED
         self.save()
 
@@ -114,7 +114,7 @@ class Job(TimeStampedModel, JobNotifierMixin):
             return
 
         for output in self.outputs.all():
-            app.control.revoke(output.background_task_id, terminate=True, signal="SIGUSR1")
+            output.stop_task()
         self.status = Job.CANCELLED
         self.save()
 
@@ -183,6 +183,9 @@ class Output(AbstractOutput):
             task = VideoTranscoderTask.apply_async(kwargs={"job_id": self.job.id, "output_id": self.id}, queue=queue)
         self.background_task_id = task.task_id
         self.save()
+
+    def stop_task(self):
+        app.control.revoke(self.background_task_id, terminate=True, signal="SIGUSR1")
 
     def __str__(self):
         if self.status == self.PROCESSING:
