@@ -83,8 +83,8 @@ class TestJobInfoView(TestCase, JobMixin):
         response = job_info_view(request, self.job.id)
 
         self.assertEqual(response.data["id"], str(self.job.id))
-        self.assertEqual(response.data["start_time"], self.job.start)
-        self.assertEqual(response.data["end_time"], self.job.end)
+        self.assertEqual(response.data["start_time"], self.job.start_time)
+        self.assertEqual(response.data["end_time"], self.job.end_time)
         self.assertEqual(response.data["submission_time"], self.job.created)
 
 

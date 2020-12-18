@@ -3,6 +3,7 @@ import os
 import copy
 
 from django.db import models
+from django.utils.translation import ugettext_lazy as _
 
 from .mixins import JobNotifierMixin
 
@@ -11,7 +12,7 @@ from model_utils.fields import StatusField
 from model_utils import Choices
 
 
-class Job(TimeStampedModel, TimeFramedModel, JobNotifierMixin):
+class Job(TimeStampedModel, JobNotifierMixin):
     NOT_STARTED = "not_started"
     QUEUED = "queued"
     PROCESSING = "processing"
@@ -40,6 +41,8 @@ class Job(TimeStampedModel, TimeFramedModel, JobNotifierMixin):
     encryption_key = models.CharField("Encryption Key", max_length=1024, null=True)
     key_url = models.CharField("Encryption Key URL", max_length=1024, null=True)
     meta_data = models.JSONField("Meta Data", null=True)
+    start_time = models.DateTimeField(_("start"), null=True, blank=True)
+    end_time = models.DateTimeField(_("end"), null=True, blank=True)
 
     class Meta:
         ordering = ("-created",)
@@ -118,7 +121,7 @@ class AbstractOutput(TimeStampedModel):
         return self.name
 
 
-class Output(AbstractOutput, TimeFramedModel):
+class Output(AbstractOutput):
     NOT_STARTED = "not_started"
     QUEUED = "queued"
     PROCESSING = "processing"
@@ -141,6 +144,8 @@ class Output(AbstractOutput, TimeFramedModel):
     background_task_id = models.UUIDField("Background Task Id", db_index=True, null=True, max_length=255)
     settings = models.JSONField("Settings", null=True)
     error_message = models.TextField("Error Message", null=True, blank=True)
+    start_time = models.DateTimeField(_("start"), null=True, blank=True)
+    end_time = models.DateTimeField(_("end"), null=True, blank=True)
 
     @property
     def resolution(self):

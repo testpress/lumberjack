@@ -8,8 +8,8 @@ class JobSerializer(serializers.ModelSerializer):
     encryption_key = serializers.CharField(required=False, allow_blank=True, allow_null=True)
     key_url = serializers.CharField(required=False, allow_blank=True, allow_null=True)
     status = serializers.ReadOnlyField(source="get_status_display")
-    start_time = serializers.ReadOnlyField(source="start")
-    end_time = serializers.ReadOnlyField(source="end")
+    start_time = serializers.ReadOnlyField()
+    end_time = serializers.ReadOnlyField()
     submission_time = serializers.ReadOnlyField(source="created")
 
     def validate(self, attrs):

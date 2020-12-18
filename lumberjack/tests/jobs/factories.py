@@ -12,8 +12,8 @@ class JobFactory(DjangoModelFactory):
 
     input_url = "s3://bucket/key"
     output_url = "s3://bucket/output_key/video.m3u8"
-    start = now()
-    end = now() + timedelta(days=1)
+    start_time = now()
+    end_time = now() + timedelta(days=1)
 
 
 class OutputFactory(DjangoModelFactory):

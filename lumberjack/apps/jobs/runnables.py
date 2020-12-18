@@ -79,7 +79,7 @@ class VideoTranscoderRunnable(LumberjackRunnable):
 
     def update_job_start_time_and_initial_status(self):
         self.job.status = Job.PROCESSING
-        self.job.start = now()
+        self.job.start_time = now()
         self.job.save()
 
     def is_transcoding_completed(self):
@@ -89,8 +89,8 @@ class VideoTranscoderRunnable(LumberjackRunnable):
         job = Job.objects.select_for_update().get(id=self.job.id)
         if job.status is not Job.COMPLETED:
             job.status = Job.COMPLETED
-            job.end = now()
-            job.save(update_fields=["status", "end"])
+            job.end_time = now()
+            job.save(update_fields=["status", "end_time"])
 
     def notify_webhook(self):
         self.job.refresh_from_db()
@@ -98,10 +98,10 @@ class VideoTranscoderRunnable(LumberjackRunnable):
 
     def update_output_status_and_time(self, status, start=None, end=None):
         if start:
-            self.output.start = start
+            self.output.start_time = start
 
         if end:
-            self.output.end = end
+            self.output.end_time = end
 
         self.output.status = status
         self.output.save()

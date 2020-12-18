@@ -40,7 +40,7 @@ class JobAdmin(DjangoObjectActions, admin.ModelAdmin):
 
     search_fields = ["id"]
     list_filter = ["status", "template"]
-    list_display = ["id", "get_status", "progress", "created", "start", "end"]
+    list_display = ["id", "get_status", "progress", "created", "start_time", "end_time"]
 
 
 class OutputAdmin(admin.ModelAdmin):
@@ -51,7 +51,7 @@ class OutputAdmin(admin.ModelAdmin):
 
     search_fields = ["job__id"]
     list_filter = ["status"]
-    list_display = ["name", "job_id", "get_status", "progress", "created", "start", "end"]
+    list_display = ["name", "job_id", "get_status", "progress", "created", "start_time", "end_time"]
 
 
 admin.site.register(Job, JobAdmin)
