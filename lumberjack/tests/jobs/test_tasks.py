@@ -10,12 +10,10 @@ from moto import mock_s3
 from requests.exceptions import ConnectionError
 from smart_open import parse_uri
 
+from apps.api.v1.jobs.serializers import JobSerializer
 from apps.jobs.models import Job
 from apps.jobs.runnables import VideoTranscoderRunnable, ManifestGeneratorRunnable
 from apps.jobs.tasks import PostDataToWebhookTask
-from apps.api.v1.jobs.serializers import JobSerializer
-from apps.jobs.models import Job, Output
-from apps.ffmpeg.main import FFMpegException
 from apps.nodes.base import ProcessStatus
 from .mixins import Mixin
 
@@ -85,11 +83,12 @@ class TestVideoTranscoder(Mixin, TestCase):
         mock_celery_control.revoke.assert_called_with(None, terminate=True, signal="SIGUSR1")
         self.assertEqual(self.video_transcoder.job.status, Job.ERROR)
 
-    @mock.patch("apps.jobs.runnables.ControllerNode")
-    @mock.patch("apps.jobs.runnables.Manager", **{"return_value.run.side_effect": SoftTimeLimitExceeded()})
-    @mock.patch("apps.jobs.models.app.GroupResult")
-    def test_task_should_stop_ffmpeg_process_in_case_of_soft_time_limit_exception(
-        self, mock_group_result, mock_ffmpeg_manager, mock_controller
+
+class TestManifestGenerator(Mixin, TestCase):
+    def setUp(self) -> None:
+        self.manifest_generator = ManifestGeneratorRunnable(job_id=self.output.job.id)
+        self.manifest_generator.initialize()
+
     @property
     def media_details(self):
         return [
