@@ -35,7 +35,7 @@ class TestVideoTranscoder(Mixin, TestCase):
             },
             "output": {
                 "name": "360p",
-                "url": "file://media.testpress.in/institute/demo/videos/transcoded/bunny",
+                "url": "s3://bucket_url/institute/demo/videos/transcoded/bunny",
                 "local_path": "/abc/1232/360p",
                 "video": {"width": 360, "height": 640, "codec": "h264", "bitrate": 500000},
                 "audio": {"codec": "aac", "bitrate": "48000"},
@@ -43,7 +43,7 @@ class TestVideoTranscoder(Mixin, TestCase):
         }
 
     def setUp(self) -> None:
-        self.output.settings = json.dumps(self.output_settings)
+        self.output.settings = self.output_settings
         self.output.save()
         self.prepare_video_transcoder()
 
@@ -54,8 +54,10 @@ class TestVideoTranscoder(Mixin, TestCase):
         self.video_transcoder.output = self.output
         self.video_transcoder.job = self.output.job
 
+    @mock.patch("apps.jobs.runnables.OutputFileFactory")
+    @mock.patch("apps.jobs.runnables.ControllerNode")
     @mock.patch("apps.jobs.runnables.FFMpegManager")
-    def test_runnable_should_run_ffmpeg_manager(self, mock_ffmpeg_manager):
+    def test_runnable_should_run_ffmpeg_manager(self, mock_ffmpeg_manager, mock_controller, mock_ouptput_factory):
         self.video_transcoder.do_run()
 
         self.assertTrue(mock_ffmpeg_manager.called)
@@ -66,19 +68,23 @@ class TestVideoTranscoder(Mixin, TestCase):
         self.assertEqual(self.output.progress, 20)
         self.assertEqual(self.job.progress, 20)
 
+    @mock.patch("apps.jobs.runnables.ControllerNode")
     @mock.patch("apps.jobs.runnables.FFMpegManager", **{"return_value.run.side_effect": FFMpegException()})
     @mock.patch("apps.jobs.models.app.control")
-    def test_task_should_be_stopped_in_case_of_exception(self, mock_celery_control, mock_ffmpeg_manager):
+    def test_task_should_be_stopped_in_case_of_exception(
+        self, mock_celery_control, mock_ffmpeg_manager, mock_controller
+    ):
         self.create_output()
         self.video_transcoder.do_run()
 
         mock_celery_control.revoke.assert_called_with(None, terminate=True, signal="SIGUSR1")
         self.assertEqual(self.video_transcoder.job.status, Job.ERROR)
 
+    @mock.patch("apps.jobs.runnables.ControllerNode")
     @mock.patch("apps.jobs.runnables.FFMpegManager", **{"return_value.run.side_effect": SoftTimeLimitExceeded()})
     @mock.patch("apps.jobs.models.app.GroupResult")
     def test_task_should_stop_ffmpeg_process_in_case_of_soft_time_limit_exception(
-        self, mock_group_result, mock_ffmpeg_manager
+        self, mock_group_result, mock_ffmpeg_manager, mock_controller
     ):
         task_mock = mock.MagicMock()
         mock_group_result.restore.return_value = [task_mock]
@@ -93,10 +99,11 @@ class TestVideoTranscoder(Mixin, TestCase):
         self.job.refresh_from_db()
         self.assertEqual(self.job.status, Job.COMPLETED)
 
+    @mock.patch("apps.jobs.runnables.OutputFileFactory")
     @mock.patch("apps.jobs.tasks.PostDataToWebhookTask")
     @mock.patch("apps.jobs.runnables.FFMpegManager")
     def test_job_completion_status_should_should_be_notified_on_transcoding_completion(
-        self, mock_ffmpeg, mock_webhook
+        self, mock_ffmpeg, mock_webhook, mock_output_factory
     ):
         self.job.webhook_url = "google.com"
         self.job.save()
