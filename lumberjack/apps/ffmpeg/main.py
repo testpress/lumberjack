@@ -7,7 +7,7 @@ from django.conf import settings
 
 from apps.ffmpeg.command_generator import CommandGenerator
 from apps.ffmpeg.utils import mkdir
-from apps.ffmpeg.event_source import LogParser, ProgressObserver
+from apps.ffmpeg.log_parser import LogParser, ProgressObserver
 
 
 class FFMpegManager:

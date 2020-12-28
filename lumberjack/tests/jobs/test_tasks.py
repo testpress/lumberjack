@@ -54,7 +54,7 @@ class TestVideoTranscoder(Mixin, TestCase):
         self.video_transcoder.output = self.output
         self.video_transcoder.job = self.output.job
 
-    @mock.patch("apps.jobs.runnables.OutputFactory")
+    @mock.patch("apps.jobs.runnables.OutputFileFactory")
     @mock.patch("apps.jobs.runnables.ControllerNode")
     @mock.patch("apps.jobs.runnables.FFMpegManager")
     def test_runnable_should_run_ffmpeg_manager(self, mock_ffmpeg_manager, mock_controller, mock_ouptput_factory):
@@ -99,7 +99,7 @@ class TestVideoTranscoder(Mixin, TestCase):
         self.job.refresh_from_db()
         self.assertEqual(self.job.status, Job.COMPLETED)
 
-    @mock.patch("apps.jobs.runnables.OutputFactory")
+    @mock.patch("apps.jobs.runnables.OutputFileFactory")
     @mock.patch("apps.jobs.tasks.PostDataToWebhookTask")
     @mock.patch("apps.jobs.runnables.FFMpegManager")
     def test_job_completion_status_should_should_be_notified_on_transcoding_completion(
