@@ -11,12 +11,14 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
+
 from typing import List
 
 from django.conf import settings
 
 from .base import ExecutorStatus, BaseExecutor
 from .cloud import CloudUploader
+from .transcoder import FFMpegTranscoder
 
 
 class MainTranscodingExecutor(object):
@@ -29,11 +31,16 @@ class MainTranscodingExecutor(object):
     def __exit__(self, *unused_args) -> None:
         self.stop()
 
-    def start(self, config) -> "MainTranscodingExecutor":
+    def start(self, config, progress_callback=None) -> "MainTranscodingExecutor":
+
+        if self._executors:
+            raise RuntimeError("Controller already started!")
+
         local_path = "{}/{}/{}".format(
             settings.TRANSCODED_VIDEOS_PATH, config.get("id"), config.get("output").get("name")
         )
         self._executors.append(CloudUploader(local_path, config.get("output")["url"]))
+        self._executors.append(FFMpegTranscoder(config, progress_callback))
         for executor in self._executors:
             executor.start()
         return self

@@ -16,6 +16,10 @@ import enum
 import sys
 import threading
 import time
+import subprocess
+import traceback
+import os
+import shlex
 
 from typing import Optional
 
@@ -38,11 +42,84 @@ class BaseExecutor(object):
         pass
 
 
-class BaseThreadExecutor(BaseExecutor):
-    """A base class for nodes that run a thread.
-    The thread repeats some callback in a background thread.
-    """
+class BaseProcessExecutor(BaseExecutor):
+    @abc.abstractmethod
+    def __init__(self) -> None:
+        self._process = None
 
+    def __del__(self) -> None:
+        # If the process isn't stopped by now, stop it here.  It is preferable to
+        # explicitly call stop().
+        self.stop(None)
+
+    def start(self):
+        self._process = self.start_process()
+
+    @abc.abstractmethod
+    def start_process(self):
+        """Start the subprocess.
+        Should be overridden by the subclass to construct a command line, call
+        self._create_process.
+        """
+        pass
+
+    def _create_process(self, args, stdout=None, stderr=None, shell=False):
+        """A central point to create subprocesses, so that we can debug the
+        command-line arguments.
+
+        Args:
+          args: An array of strings if shell is False, or a single string is shell
+                is True; the command line of the subprocess.
+          shell: If true, args must be a single string, which will be executed as a
+                 shell command.
+        Returns:
+          The Popen object of the subprocess.
+        """
+
+        if type(args) is str:
+            command = shlex.split(args)
+        else:
+            command = args
+
+        return subprocess.Popen(
+            command,
+            stdin=subprocess.DEVNULL,
+            stdout=stdout,
+            stderr=stderr,
+            shell=shell,
+            universal_newlines=True,
+        )
+
+    def check_status(self) -> ExecutorStatus:
+        """Returns the current ExecutorStatus of the node."""
+        if not self._process:
+            raise ValueError("Must have a process to check")
+
+        self._process.poll()
+        if self._process.returncode is None:
+            return ExecutorStatus.Running
+
+        if self._process.returncode == 0:
+            return ExecutorStatus.Finished
+        else:
+            return ExecutorStatus.Errored
+
+    def stop(self, status: Optional[ExecutorStatus]) -> None:
+        """Stop the subprocess if it's still running."""
+        if self._process:
+            # Slightly more polite than kill.  Try this first.
+            self._process.terminate()
+
+            if self.check_status() == ExecutorStatus.Running:
+                # If it's not dead yet, wait 1 second.
+                time.sleep(1)
+        self.post_stop()
+
+    def post_stop(self):
+        pass
+
+
+class BaseThreadExecutor(BaseExecutor):
     def __init__(self, thread_name: str, continue_on_exception: bool):
         super().__init__()
         self._status = ExecutorStatus.Not_Started
@@ -94,3 +171,21 @@ class BaseThreadExecutor(BaseExecutor):
 
     def check_status(self) -> ExecutorStatus:
         return self._status
+
+
+class PolitelyWaitOnFinishMixin(BaseProcessExecutor):
+    """
+    A mixin that makes stop() wait for the subprocess if status is Finished.
+    This is as opposed to the base class behavior, in which stop() forces
+    the subprocesses of a node to terminate.
+    """
+
+    def stop(self, status: Optional[ExecutorStatus]) -> None:
+        if self._process and status == ExecutorStatus.Finished:
+            try:
+                print("Waiting for ", self.__class__.__name__)
+                self._process.wait(timeout=300)  # 5 min timeout
+            except subprocess.TimeoutExpired:
+                traceback.print_exc()
+        super().stop(status)
+        self.post_stop()
