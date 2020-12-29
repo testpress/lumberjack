@@ -18,7 +18,7 @@ from apps.ffmpeg.outputs import OutputFileFactory
 from .base import ProcessStatus, ThreadedProcessExecutor
 
 
-class CloudSaveExecutor(ThreadedProcessExecutor):
+class CloudUploader(ThreadedProcessExecutor):
     def __init__(self, input_dir: str, url: str):
         super().__init__(thread_name="cloud", continue_on_exception=True)
         self._input_dir: str = input_dir

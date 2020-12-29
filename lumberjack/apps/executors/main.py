@@ -15,7 +15,7 @@ from typing import List
 
 from django.conf import settings
 
-from .cloud import CloudSaveExecutor
+from .cloud import CloudUploader
 from .base import BaseProcessExecutor, ProcessStatus
 
 
@@ -33,7 +33,7 @@ class MainTranscodingExecutor(object):
         local_path = "{}/{}/{}".format(
             settings.TRANSCODED_VIDEOS_PATH, config.get("id"), config.get("output").get("name")
         )
-        self._nodes.append(CloudSaveExecutor(local_path, config.get("output")["url"]))
+        self._nodes.append(CloudUploader(local_path, config.get("output")["url"]))
         for node in self._nodes:
             node.start()
         return self
