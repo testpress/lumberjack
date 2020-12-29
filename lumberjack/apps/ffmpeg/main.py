@@ -34,7 +34,7 @@ class FFMpegManager:
         self.progress_observer = ProgressObserver(self.monitor)
 
     def register_observers(self):
-        self.event_source.register(self.progress_observer)
+        self.log_parser.register(self.progress_observer)
 
 
 class Executor:
