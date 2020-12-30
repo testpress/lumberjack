@@ -27,7 +27,7 @@ class CommandGenerator(object):
 
     @property
     def ffmpeg_binary(self):
-        return "ffmpeg -hide_banner"
+        return "ffmpeg -hide_banner -y"
 
     @property
     def input_argument(self):
@@ -51,16 +51,19 @@ class CommandGenerator(object):
 
     @property
     def output_path(self):
+        if self.options.get("output", {}).get("pipe"):
+            return self.options.get("output").get("pipe")
+
         file_name = self.options.get("file_name")
         if not file_name:
             file_name = generate_file_name_from_format(self.options.get("format"))
-
+    
         return "{}/{}/{}".format(self.local_path, self.options.get("output")["name"], file_name)
 
     @property
     def media_options(self):
-        if self.options.get("format").lower() == "hls":
-            return HLSOptions(self.options).all
+        if self.options.get("format").lower() in ["adaptive", "hls", "dash"]:
+            return AdaptiveMediaOptions(self.options).all
         return MediaOptions(self.options).all
 
 
@@ -100,6 +103,14 @@ class MediaOptions(object):
         args = {}
         args.update(self.audio_options())
         args.update(self.video_options())
+        return args
+
+
+class AdaptiveMediaOptions(MediaOptions):
+    @property
+    def all(self):
+        args = super().all
+        args.update({"movflags": "frag_keyframe+empty_moov", "f": "mpegts"})
         return args
 
 
