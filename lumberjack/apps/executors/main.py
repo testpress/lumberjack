@@ -11,16 +11,17 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
+from typing import List
 
 from django.conf import settings
 
-from .base import ProcessStatus
+from .base import ExecutorStatus, BaseExecutor
 from .cloud import CloudUploader
 
 
 class MainTranscodingExecutor(object):
     def __init__(self) -> None:
-        self._nodes = []
+        self._nodes: List[BaseExecutor]  = []
 
     def __enter__(self) -> "MainTranscodingExecutor":
         return self
@@ -37,17 +38,17 @@ class MainTranscodingExecutor(object):
             node.start()
         return self
 
-    def check_status(self) -> ProcessStatus:
+    def check_status(self) -> ExecutorStatus:
         """Checks the status of all the nodes.
         If one node is errored, this returns Errored; otherwise if one node is
         finished, this returns Finished; this only returns Running if all nodes are
         running.  If there are no nodes, this returns Finished.
         """
         if not self._nodes:
-            return ProcessStatus.Finished
+            return ExecutorStatus.Finished
 
         value = max(node.check_status().value for node in self._nodes)
-        return ProcessStatus(value)
+        return ExecutorStatus(value)
 
     def stop(self) -> None:
         """Stop all nodes."""

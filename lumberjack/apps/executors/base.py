@@ -20,26 +20,38 @@ import time
 from typing import Optional
 
 
-class ProcessStatus(enum.Enum):
-    Running = 0
-    Finished = 1
-    Errored = 2
+class ExecutorStatus(enum.Enum):
+    Not_Started = 0
+    Running = 1
+    Finished = 2
+    Errored = 3
 
 
-class BaseThreadExecutor(object):
+class BaseExecutor(object):
+    def start(self):
+        pass
+
+    def stop(self, status: Optional[ExecutorStatus]):
+        pass
+
+    def check_status(self) -> ExecutorStatus:
+        pass
+
+
+class BaseThreadExecutor(BaseExecutor):
     """A base class for nodes that run a thread.
     The thread repeats some callback in a background thread.
     """
 
     def __init__(self, thread_name: str, continue_on_exception: bool):
         super().__init__()
-        self._status = ProcessStatus.Finished
+        self._status = ExecutorStatus.Not_Started
         self._thread_name = thread_name
         self._continue_on_exception = continue_on_exception
         self._thread = threading.Thread(target=self._thread_main, name=thread_name)
 
     def _thread_main(self) -> None:
-        while self._status == ProcessStatus.Running:
+        while self._status == ExecutorStatus.Running:
             try:
                 self.run()
             except:
@@ -49,7 +61,7 @@ class BaseThreadExecutor(object):
                     print("Continuing.")
                 else:
                     print("Quitting.")
-                    self._status = ProcessStatus.Errored
+                    self._status = ExecutorStatus.Errored
                     return
 
             # Yield time to other threads.
@@ -68,12 +80,17 @@ class BaseThreadExecutor(object):
         pass
 
     def start(self) -> None:
-        self._status = ProcessStatus.Running
+        self._status = ExecutorStatus.Running
         self._thread.start()
 
-    def stop(self, status: Optional[ProcessStatus]) -> None:
-        self._status = ProcessStatus.Finished
+    def stop(self, status: Optional[ExecutorStatus]) -> None:
+        self._status = ExecutorStatus.Finished
         self._thread.join()
+        self.post_stop()
 
-    def check_status(self) -> ProcessStatus:
+    def post_stop(self):
+        # Can be implemented to perform clean up or other functions once thread is stopped
+        pass
+
+    def check_status(self) -> ExecutorStatus:
         return self._status

@@ -12,10 +12,8 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-from typing import Optional
-
 from apps.ffmpeg.outputs import OutputFileFactory
-from .base import ProcessStatus, BaseThreadExecutor
+from .base import ExecutorStatus, BaseThreadExecutor
 
 
 class CloudUploader(BaseThreadExecutor):
@@ -26,9 +24,8 @@ class CloudUploader(BaseThreadExecutor):
         self.output = OutputFileFactory.create(self.url)
 
     def run(self):
-        self.output.save(self._input_dir, is_transcode_completed=self._status == ProcessStatus.Finished)
+        self.output.save(self._input_dir, is_transcode_completed=self._status == ExecutorStatus.Finished)
 
-    def stop(self, status: Optional[ProcessStatus]) -> None:
-        super().stop(status)
+    def post_stop(self):
         # Perform uploading once at last to upload final manifest file.
         self.run()

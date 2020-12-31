@@ -1,9 +1,9 @@
 from django.test import SimpleTestCase
 from apps.executors.main import MainTranscodingExecutor
-from apps.executors.base import ProcessStatus
+from apps.executors.base import ExecutorStatus
 
 
-class TestController(SimpleTestCase):
+class TestMainTranscodingExecutor(SimpleTestCase):
     @property
     def output_settings(self):
         return {
@@ -30,7 +30,7 @@ class TestController(SimpleTestCase):
         controller = MainTranscodingExecutor()
         controller.start(self.output_settings)
 
-        self.assertEqual(ProcessStatus.Running, controller.check_status())
+        self.assertEqual(ExecutorStatus.Running, controller.check_status())
         controller.stop()
 
     def test_stop_should_stop_the_nodes_in_controller(self):
@@ -38,12 +38,12 @@ class TestController(SimpleTestCase):
         controller.start(self.output_settings)
         controller.stop()
 
-        self.assertEqual(ProcessStatus.Finished, controller.check_status())
+        self.assertEqual(ExecutorStatus.Finished, controller.check_status())
 
     def test_process_should_get_completed_outside_context_manager(self):
         controller = MainTranscodingExecutor()
 
         with controller.start(self.output_settings):
-            self.assertEqual(ProcessStatus.Running, controller.check_status())
+            self.assertEqual(ExecutorStatus.Running, controller.check_status())
 
-        self.assertEqual(ProcessStatus.Finished, controller.check_status())
+        self.assertEqual(ExecutorStatus.Finished, controller.check_status())
