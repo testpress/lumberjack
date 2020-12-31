@@ -24,7 +24,7 @@ import shlex
 from typing import Optional
 
 
-class ExecutorStatus(enum.Enum):
+class Status(enum.Enum):
     Not_Started = 0
     Running = 1
     Finished = 2
@@ -35,10 +35,10 @@ class BaseExecutor(object):
     def start(self):
         pass
 
-    def stop(self, status: Optional[ExecutorStatus]):
+    def stop(self, status: Optional[Status]):
         pass
 
-    def check_status(self) -> ExecutorStatus:
+    def check_status(self) -> Status:
         pass
 
 
@@ -90,27 +90,27 @@ class BaseProcessExecutor(BaseExecutor):
             universal_newlines=True,
         )
 
-    def check_status(self) -> ExecutorStatus:
-        """Returns the current ExecutorStatus of the node."""
+    def check_status(self) -> Status:
+        """Returns the current Status of the node."""
         if not self._process:
             raise ValueError("Must have a process to check")
 
         self._process.poll()
         if self._process.returncode is None:
-            return ExecutorStatus.Running
+            return Status.Running
 
         if self._process.returncode == 0:
-            return ExecutorStatus.Finished
+            return Status.Finished
         else:
-            return ExecutorStatus.Errored
+            return Status.Errored
 
-    def stop(self, status: Optional[ExecutorStatus]) -> None:
+    def stop(self, status: Optional[Status]) -> None:
         """Stop the subprocess if it's still running."""
         if self._process:
             # Slightly more polite than kill.  Try this first.
             self._process.terminate()
 
-            if self.check_status() == ExecutorStatus.Running:
+            if self.check_status() == Status.Running:
                 # If it's not dead yet, wait 1 second.
                 time.sleep(1)
         self.post_stop()
@@ -125,13 +125,13 @@ class BaseThreadExecutor(BaseExecutor):
     """
     def __init__(self, thread_name: str, continue_on_exception: bool):
         super().__init__()
-        self._status = ExecutorStatus.Not_Started
+        self._status = Status.Not_Started
         self._thread_name = thread_name
         self._continue_on_exception = continue_on_exception
         self._thread = threading.Thread(target=self._thread_main, name=thread_name)
 
     def _thread_main(self) -> None:
-        while self._status == ExecutorStatus.Running:
+        while self._status == Status.Running:
             try:
                 self.run()
             except:
@@ -141,7 +141,7 @@ class BaseThreadExecutor(BaseExecutor):
                     print("Continuing.")
                 else:
                     print("Quitting.")
-                    self._status = ExecutorStatus.Errored
+                    self._status = Status.Errored
                     return
 
             # Yield time to other threads.
@@ -160,11 +160,11 @@ class BaseThreadExecutor(BaseExecutor):
         pass
 
     def start(self) -> None:
-        self._status = ExecutorStatus.Running
+        self._status = Status.Running
         self._thread.start()
 
-    def stop(self, status: Optional[ExecutorStatus]) -> None:
-        self._status = ExecutorStatus.Finished
+    def stop(self, status: Optional[Status]) -> None:
+        self._status = Status.Finished
         self._thread.join()
         self.post_stop()
 
@@ -172,7 +172,7 @@ class BaseThreadExecutor(BaseExecutor):
         # Can be implemented to perform clean up or other functions once thread is stopped
         pass
 
-    def check_status(self) -> ExecutorStatus:
+    def check_status(self) -> Status:
         return self._status
 
 
@@ -183,10 +183,9 @@ class PolitelyWaitOnFinishMixin(BaseProcessExecutor):
     the subprocesses of a node to terminate.
     """
 
-    def stop(self, status: Optional[ExecutorStatus]) -> None:
-        if self._process and status == ExecutorStatus.Finished:
+    def stop(self, status: Optional[Status]) -> None:
+        if self._process and status == Status.Finished:
             try:
-                print("Waiting for ", self.__class__.__name__)
                 self._process.wait(timeout=300)  # 5 min timeout
             except subprocess.TimeoutExpired:
                 traceback.print_exc()

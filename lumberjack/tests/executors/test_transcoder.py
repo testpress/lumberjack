@@ -1,10 +1,10 @@
 from django.test import SimpleTestCase
 
 from apps.executors.transcoder import FFMpegTranscoder
-from apps.executors.base import ExecutorStatus
+from apps.executors.base import Status
 
 
-class TestTranscoder(SimpleTestCase):
+class TestFFMpegTranscoder(SimpleTestCase):
     @property
     def output_settings(self):
         return {
@@ -27,13 +27,12 @@ class TestTranscoder(SimpleTestCase):
         transcoder = FFMpegTranscoder(self.output_settings)
         transcoder.start()
 
-        self.assertEqual(ExecutorStatus.Running, transcoder.check_status())
+        self.assertEqual(Status.Running, transcoder.check_status())
 
     def test_event_observer_should_be_stopped_on_stopping_transcoder(self):
         transcoder = FFMpegTranscoder(self.output_settings)
         transcoder.start()
-        transcoder._process.terminate()
-        transcoder.stop(ExecutorStatus.Finished)
+        transcoder.stop(Status.Finished)
 
         self.assertFalse(transcoder.event_source.thread.is_alive())
 

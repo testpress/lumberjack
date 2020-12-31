@@ -1,9 +1,9 @@
 from django.test import SimpleTestCase
-from apps.executors.main import MainTranscodingExecutor
-from apps.executors.base import ExecutorStatus
+from apps.jobs.controller import LumberjackController
+from apps.executors.base import Status
 
 
-class TestMainTranscodingExecutor(SimpleTestCase):
+class TestLumberjackController(SimpleTestCase):
     @property
     def output_settings(self):
         return {
@@ -23,23 +23,23 @@ class TestMainTranscodingExecutor(SimpleTestCase):
         }
 
     def test_status_should_be_running_once_controller_is_started(self):
-        controller = MainTranscodingExecutor()
+        controller = LumberjackController()
         controller.start(self.output_settings)
 
-        self.assertEqual(ExecutorStatus.Running, controller.check_status())
+        self.assertEqual(Status.Running, controller.check_status())
         controller.stop()
 
-    def test_stop_should_stop_the_nodes_in_controller(self):
-        controller = MainTranscodingExecutor()
+    def test_stop_should_stop_the_executors_in_controller(self):
+        controller = LumberjackController()
         controller.start(self.output_settings)
         controller.stop()
 
-        self.assertEqual(ExecutorStatus.Finished, controller.check_status())
+        self.assertEqual(Status.Finished, controller.check_status())
 
-    def test_process_should_get_completed_outside_context_manager(self):
-        controller = MainTranscodingExecutor()
+    def test_controller_status_should_be_completed_outside_context_manager(self):
+        controller = LumberjackController()
 
         with controller.start(self.output_settings):
-            self.assertEqual(ExecutorStatus.Running, controller.check_status())
+            self.assertEqual(Status.Running, controller.check_status())
 
-        self.assertEqual(ExecutorStatus.Finished, controller.check_status())
+        self.assertEqual(Status.Finished, controller.check_status())

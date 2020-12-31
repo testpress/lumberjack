@@ -6,8 +6,8 @@ from django.utils.timezone import now
 from django.db import transaction
 
 from apps.ffmpeg.outputs import OutputFileFactory
-from apps.executors.main import MainTranscodingExecutor
-from apps.executors.base import ExecutorStatus
+from apps.jobs.controller import LumberjackController
+from apps.executors.base import Status
 from apps.jobs.models import Job, Output
 
 
@@ -44,25 +44,25 @@ class LumberjackRunnableException(Exception):
 class VideoTranscoderRunnable(LumberjackRunnable):
     def do_run(self, *args, **kwargs):
         self.initialize()
-        transcoder_v2 = MainTranscodingExecutor()
-        transcoder_v2.start(self.output.settings)
+        controller = LumberjackController()
 
-        with transcoder_v2.start(self.output.settings, self.update_progress):
+        with controller.start(self.output.settings, self.update_progress):
             try:
                 while True:
-                    status = transcoder_v2.check_status()
-                    if status == ExecutorStatus.Finished:
+                    status = controller.check_status()
+                    if status == Status.Finished:
+                        self.update_output_as_completed()
                         break
-                    elif status == ExecutorStatus.Errored:
+                    elif status == Status.Errored:
                         self.handle_ffmpeg_exception(None)
                         break
                     time.sleep(1)
             except RuntimeError as error:
                 self.handle_ffmpeg_exception(error)
-                transcoder_v2.stop()
+                controller.stop()
             except SoftTimeLimitExceeded:
                 self.update_output_as_cancelled()
-                transcoder_v2.stop()
+                controller.stop()
 
         with transaction.atomic():
             if self.is_transcoding_completed():
