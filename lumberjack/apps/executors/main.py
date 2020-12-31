@@ -21,7 +21,7 @@ from .cloud import CloudUploader
 
 class MainTranscodingExecutor(object):
     def __init__(self) -> None:
-        self._nodes: List[BaseExecutor]  = []
+        self._executors: List[BaseExecutor] = []
 
     def __enter__(self) -> "MainTranscodingExecutor":
         return self
@@ -33,9 +33,9 @@ class MainTranscodingExecutor(object):
         local_path = "{}/{}/{}".format(
             settings.TRANSCODED_VIDEOS_PATH, config.get("id"), config.get("output").get("name")
         )
-        self._nodes.append(CloudUploader(local_path, config.get("output")["url"]))
-        for node in self._nodes:
-            node.start()
+        self._executors.append(CloudUploader(local_path, config.get("output")["url"]))
+        for executor in self._executors:
+            executor.start()
         return self
 
     def check_status(self) -> ExecutorStatus:
@@ -44,15 +44,15 @@ class MainTranscodingExecutor(object):
         finished, this returns Finished; this only returns Running if all nodes are
         running.  If there are no nodes, this returns Finished.
         """
-        if not self._nodes:
+        if not self._executors:
             return ExecutorStatus.Finished
 
-        value = max(node.check_status().value for node in self._nodes)
+        value = max(node.check_status().value for node in self._executors)
         return ExecutorStatus(value)
 
     def stop(self) -> None:
         """Stop all nodes."""
         status = self.check_status()
-        for node in self._nodes:
-            node.stop(status)
-        self._nodes = []
+        for executor in self._executors:
+            executor.stop(status)
+        self._executors = []
