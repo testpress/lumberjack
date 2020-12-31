@@ -120,6 +120,9 @@ class BaseProcessExecutor(BaseExecutor):
 
 
 class BaseThreadExecutor(BaseExecutor):
+    """A base class for nodes that run a thread.
+    The thread repeats some callback in a background thread.
+    """
     def __init__(self, thread_name: str, continue_on_exception: bool):
         super().__init__()
         self._status = ExecutorStatus.Not_Started
