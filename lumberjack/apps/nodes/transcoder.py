@@ -20,7 +20,7 @@ from typing import Optional
 from django.conf import settings
 
 from apps.ffmpeg.command_generator import CommandGenerator
-from apps.ffmpeg.event_source import EventSource, ProgressObserver
+from apps.ffmpeg.log_parser import LogParser, ProgressObserver
 from apps.ffmpeg.utils import mkdir
 from .base import PolitelyWaitOnFinish, NodeBase, ProcessStatus
 
@@ -36,7 +36,7 @@ class TranscoderNode(PolitelyWaitOnFinish, NodeBase):
     def start(self):
         self.create_output_folder()
         self._process = self.start_transcoding()
-        self.event_source = EventSource(self._process)
+        self.event_source = LogParser(self._process)
         self.register_observers()
         self.event_source.start()
 

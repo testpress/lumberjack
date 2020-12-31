@@ -14,7 +14,7 @@
 
 from typing import Optional
 
-from apps.ffmpeg.outputs import OutputFactory
+from apps.ffmpeg.outputs import OutputFileFactory
 from .base import ProcessStatus, ThreadedNodeBase
 
 
@@ -23,7 +23,7 @@ class CloudNode(ThreadedNodeBase):
         super().__init__(thread_name="cloud", continue_on_exception=True)
         self._input_dir: str = input_dir
         self.url: str = url
-        self.output = OutputFactory.create(self.url)
+        self.output = OutputFileFactory.create(self.url)
 
     def _thread_single_pass(self):
         self.output.save(self._input_dir, is_transcode_completed=self._status == ProcessStatus.Finished)

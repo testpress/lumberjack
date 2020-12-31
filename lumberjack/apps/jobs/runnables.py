@@ -5,7 +5,7 @@ from django.shortcuts import get_object_or_404
 from django.utils.timezone import now
 from django.db import transaction
 
-from apps.ffmpeg.outputs import OutputFactory
+from apps.ffmpeg.outputs import OutputFileFactory
 from apps.jobs.models import Job, Output
 from apps.nodes.base import ProcessStatus
 from apps.nodes.controller import ControllerNode
@@ -45,11 +45,6 @@ class LumberjackRunnableException(Exception):
 class VideoTranscoderRunnable(LumberjackRunnable):
     def do_run(self, *args, **kwargs):
         self.initialize()
-
-        if self.is_job_status_not_updated():
-            self.update_job_start_time_and_initial_status()
-            self.job.notify_webhook()
-        self.update_output_status_and_time(Output.PROCESSING, start=now())
         self.run_transcoder()
 
     def run_transcoder(self):
@@ -61,22 +56,21 @@ class VideoTranscoderRunnable(LumberjackRunnable):
                     if status == ProcessStatus.Finished:
                         break
                     elif status == ProcessStatus.Errored:
-                        self.update_output_status_and_time(Output.ERROR, end=now())
+                        self.update_output_as_error()
                         self.stop_job()
                         if not self.is_job_status_error():
-                            self.set_error_status_and_notify()
+                            self.update_job_as_error_and_notify()
                         break
                     time.sleep(1)
             except RuntimeError:
                 controller.stop()
             except SoftTimeLimitExceeded:
-                self.set_output_status_cancelled()
+                self.update_output_as_cancelled()
                 controller.stop()
 
         with transaction.atomic():
             if self.is_transcoding_completed():
                 self.complete_job()
-                self.notify_webhook()
                 self.generate_manifest()
 
     def handle_ffmpeg_exception(self, error):
