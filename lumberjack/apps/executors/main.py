@@ -11,17 +11,16 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-from typing import List
 
 from django.conf import settings
 
+from .base import ProcessStatus
 from .cloud import CloudUploader
-from .base import BaseProcessExecutor, ProcessStatus
 
 
 class MainTranscodingExecutor(object):
     def __init__(self) -> None:
-        self._nodes: List[BaseProcessExecutor] = []
+        self._nodes = []
 
     def __enter__(self) -> "MainTranscodingExecutor":
         return self

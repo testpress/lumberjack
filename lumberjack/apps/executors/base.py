@@ -26,59 +26,7 @@ class ProcessStatus(enum.Enum):
     Errored = 2
 
 
-class BaseProcessExecutor(object):
-    @abc.abstractmethod
-    def __init__(self) -> None:
-        self._process = None
-
-    def __del__(self) -> None:
-        # If the process isn't stopped by now, stop it here.  It is preferable to
-        # explicitly call stop().
-        self.stop(None)
-
-    @abc.abstractmethod
-    def start(self):
-        """Start the subprocess.
-
-        Should be overridden by the subclass to construct a command line, call
-        self._create_process, and assign the result to self._process.
-        """
-        pass
-
-    def check_status(self) -> ProcessStatus:
-        """Returns the current ProcessStatus of the node."""
-        if not self._process:
-            raise ValueError("Must have a process to check")
-
-        self._process.poll()
-        if self._process.returncode is None:
-            return ProcessStatus.Running
-
-        if self._process.returncode == 0:
-            return ProcessStatus.Finished
-        else:
-            return ProcessStatus.Errored
-
-    def stop(self, status: Optional[ProcessStatus]) -> None:
-        """Stop the subprocess if it's still running."""
-        if self._process:
-            # Slightly more polite than kill.  Try this first.
-            self._process.terminate()
-
-            if self.check_status() == ProcessStatus.Running:
-                # If it's not dead yet, wait 1 second.
-                time.sleep(1)
-
-            if self.check_status() == ProcessStatus.Running:
-                # If it's still not dead, use kill.
-                self._process.kill()
-                # Wait for the process to die and read its exit code.  There is no way
-                # to ignore a kill signal, so this will happen quickly.  If we don't do
-                # this, it can create a zombie process.
-                self._process.wait()
-
-
-class ThreadedProcessExecutor(BaseProcessExecutor):
+class BaseThreadExecutor(object):
     """A base class for nodes that run a thread.
     The thread repeats some callback in a background thread.
     """
@@ -93,7 +41,7 @@ class ThreadedProcessExecutor(BaseProcessExecutor):
     def _thread_main(self) -> None:
         while self._status == ProcessStatus.Running:
             try:
-                self._thread_single_pass()
+                self.run()
             except:
                 print("Exception in", self._thread_name, "-", sys.exc_info())
 
@@ -108,7 +56,7 @@ class ThreadedProcessExecutor(BaseProcessExecutor):
             time.sleep(1)
 
     @abc.abstractmethod
-    def _thread_single_pass(self):
+    def run(self):
         """Runs a single step of the thread loop.
         This is implemented by subclasses to do whatever it is they do.  It will be
         called repeatedly by the base class from the node's background thread.  If

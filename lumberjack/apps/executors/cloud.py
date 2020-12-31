@@ -15,20 +15,20 @@
 from typing import Optional
 
 from apps.ffmpeg.outputs import OutputFileFactory
-from .base import ProcessStatus, ThreadedProcessExecutor
+from .base import ProcessStatus, BaseThreadExecutor
 
 
-class CloudUploader(ThreadedProcessExecutor):
+class CloudUploader(BaseThreadExecutor):
     def __init__(self, input_dir: str, url: str):
         super().__init__(thread_name="cloud", continue_on_exception=True)
         self._input_dir: str = input_dir
         self.url: str = url
         self.output = OutputFileFactory.create(self.url)
 
-    def _thread_single_pass(self):
+    def run(self):
         self.output.save(self._input_dir, is_transcode_completed=self._status == ProcessStatus.Finished)
 
     def stop(self, status: Optional[ProcessStatus]) -> None:
         super().stop(status)
         # Perform uploading once at last to upload final manifest file.
-        self._thread_single_pass()
+        self.run()
