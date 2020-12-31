@@ -27,7 +27,7 @@ class CommandGenerator(object):
 
     @property
     def ffmpeg_binary(self):
-        return "ffmpeg -hide_banner -y"
+        return "ffmpeg -y -loglevel verbose"
 
     @property
     def input_argument(self):

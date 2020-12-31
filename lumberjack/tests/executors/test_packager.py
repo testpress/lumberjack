@@ -4,7 +4,7 @@ import os
 from django.test import SimpleTestCase
 
 from apps.executors.packager import ShakaPackager
-from apps.executors.base import ProcessStatus
+from apps.executors.base import Status
 from apps.ffmpeg.utils import mkdir
 
 
@@ -35,14 +35,14 @@ class TestPackager(SimpleTestCase):
         packager = ShakaPackager(self.output_settings, "tests/nodes/data/")
         packager.start()
 
-        self.assertEqual(ProcessStatus.Running, packager.check_status())
+        self.assertEqual(Status.Running, packager.check_status())
 
     def test_status_should_be_finished_on_completion(self):
         packager = ShakaPackager(self.output_settings, "tests/nodes/data/")
         packager.start()
         packager._process.wait()
 
-        self.assertEqual(ProcessStatus.Finished, packager.check_status())
+        self.assertEqual(Status.Finished, packager.check_status())
 
     def test_both_mpd_and_m3u8_should_be_generated_for_adaptive_format(self):
         packager = ShakaPackager(self.output_settings, "tests/nodes/data/")

@@ -12,25 +12,24 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-import uuid
 import os
-from typing import List
 import tempfile
+import uuid
+from typing import List
 
 from django.conf import settings
 
 from apps.executors.base import Status, BaseExecutor
 from apps.executors.cloud import CloudUploader
 from apps.executors.transcoder import FFMpegTranscoder
+from apps.executors.packager import ShakaPackager
 
 
 class LumberjackController(object):
     def __init__(self) -> None:
         global_temp_dir = tempfile.gettempdir()
 
-        # The docs state that if any of prefix, suffix, or dir are specified, all
-        # must be specified (and not None).  Create a temp dir of our own, inside
-        # the global temp dir, and with a name that indicates who made it.
+        # Create a temp dir of our own, inside the global temp dir, and with a name that indicates who made it.
         self._temp_dir = tempfile.mkdtemp(dir=global_temp_dir, prefix="shaka-live-", suffix="")
 
         self._executors: List[BaseExecutor] = []
@@ -71,9 +70,10 @@ class LumberjackController(object):
         local_path = "{}/{}/{}".format(
             settings.TRANSCODED_VIDEOS_PATH, config.get("id"), config.get("output").get("name")
         )
+        # Add shaka packager only if encryption has drm
         if config.get("format") in ["adaptive", "hls", "dash"]:
             config["output"]["pipe"] = self._create_pipe()
-            self._executors.append(PackagerNode(config, local_path))
+            self._executors.append(ShakaPackager(config, local_path))
 
         self._executors.append(CloudUploader(local_path, config.get("output")["url"]))
         self._executors.append(FFMpegTranscoder(config, progress_callback))

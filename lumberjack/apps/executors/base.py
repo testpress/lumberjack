@@ -94,6 +94,9 @@ class BaseProcessExecutor(BaseExecutor):
             stdout=stdout,
             stderr=stderr,
             shell=shell,
+        )
+
+    def check_status(self) -> Status:
         """Returns the current Status of the node."""
         if not self._process:
             raise ValueError("Must have a process to check")
