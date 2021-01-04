@@ -15,6 +15,7 @@
 import os
 import tempfile
 import uuid
+import copy
 from typing import List
 
 from django.conf import settings
@@ -23,6 +24,27 @@ from apps.executors.base import Status, BaseExecutor
 from apps.executors.cloud import CloudUploader
 from apps.executors.transcoder import FFMpegTranscoder
 from apps.executors.packager import ShakaPackager
+import threading
+
+
+class WriterThread(threading.Thread):
+    def __init__(self, input_pipe):
+        super().__init__()
+        self.input_pipe = input_pipe
+        self.output_pipes = []
+
+    def register_output_pipes(self, pipe):
+        self.output_pipes.append(pipe)
+
+    def run(self) -> None:
+        file_pointers = [open(pipe, "wb") for pipe in self.output_pipes]
+        while True:
+            with open(self.input_pipe, "rb") as fifo:
+                for line in fifo:
+                    for fp in file_pointers:
+                        fp.write(line)
+            for fp in file_pointers:
+                fp.close()
 
 
 class LumberjackController(object):
@@ -70,16 +92,51 @@ class LumberjackController(object):
         local_path = "{}/{}/{}".format(
             settings.TRANSCODED_VIDEOS_PATH, config.get("id"), config.get("output").get("name")
         )
-        # Add shaka packager only if encryption has drm
-        if config.get("format") in ["adaptive", "hls", "dash"]:
+        if self.should_use_packager(config):
             config["output"]["pipe"] = self._create_pipe()
-            self._executors.append(ShakaPackager(config, local_path))
+            writer_thread = WriterThread(config["output"]["pipe"])
+            drm_encryption = config.get("drm_encryption")
 
-        self._executors.append(CloudUploader(local_path, config.get("output")["url"]))
+            if config.get("format") in ["adaptive", "hls"]:
+                hls_config = copy.deepcopy(config)
+                if drm_encryption:
+                    hls_config["encryption"] = drm_encryption.get("fairplay")
+                hls_config["format"] = "hls"
+                hls_config["output"]["pipe"] = self._create_pipe()
+                writer_thread.register_output_pipes(hls_config["output"]["pipe"])
+                hls_output_path = local_path + "_hls"
+                self._executors.append(ShakaPackager(hls_config, hls_output_path))
+                self._executors.append(CloudUploader(hls_output_path, config.get("output")["url"] + "_hls"))
+
+            if config.get("format") in ["adaptive", "dash"]:
+                dash_config = copy.deepcopy(config)
+                if drm_encryption:
+                    dash_config["encryption"] = drm_encryption.get("widevine")
+                dash_config["format"] = "dash"
+                dash_config["output"]["pipe"] = self._create_pipe()
+                dash_output_path = local_path + "_dash"
+                writer_thread.register_output_pipes(dash_config["output"]["pipe"])
+                self._executors.append(ShakaPackager(dash_config, dash_output_path))
+                self._executors.append(CloudUploader(dash_output_path, config.get("output")["url"] + "_dash"))
+
+            writer_thread.start()
+        else:
+            self._executors.append(CloudUploader(local_path, config.get("output")["url"]))
+
         self._executors.append(FFMpegTranscoder(config, progress_callback))
         for executor in self._executors:
             executor.start()
         return self
+
+    def should_use_packager(self, config):
+        # If only hls output without fairplay is necessary then FFMpeg itself can be used
+        if config.get("format") == "hls" and not config.get("drm_encryption", {}).get("fairplay", None):
+            return False
+
+        if config.get("format") in ["adaptive", "dash", "hls"]:
+            return True
+
+        return False
 
     def check_status(self) -> Status:
         """Checks the status of all the nodes.

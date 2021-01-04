@@ -45,6 +45,8 @@ class Job(TimeStampedModel, JobNotifierMixin):
     meta_data = models.JSONField("Meta Data", null=True)
     start_time = models.DateTimeField(_("start"), null=True, blank=True)
     end_time = models.DateTimeField(_("end"), null=True, blank=True)
+    drm_encryption = models.JSONField("DRM Encryption", null=True)
+    output_cdn_url = models.CharField("Output CDN URL", max_length=1024, null=True)
 
     class Meta:
         ordering = ("-created",)

@@ -4,6 +4,7 @@ import subprocess
 from typing import List
 
 from .base import PolitelyWaitOnFinishMixin
+from apps.ffmpeg.utils import mkdir
 
 INIT_SEGMENT = {
     "audio": "{dir}/audio_init.{format}",
@@ -27,6 +28,7 @@ class ShakaPackager(PolitelyWaitOnFinishMixin):
         self._output_dir = output_dir
         self._segment_dir = os.path.join(output_dir, config.get("segment_folder", ""))
         self.config = config
+        mkdir(self._output_dir)
 
     def start(self):
         args = ["packager"]
@@ -98,5 +100,29 @@ class ShakaPackager(PolitelyWaitOnFinishMixin):
             args += [
                 "--hls_master_playlist_output",
                 os.path.join(self._output_dir, self.config.get("hls_output", "video.m3u8")),
+            ]
+        return args
+
+    def _setup_encryption(self) -> List[str]:
+        args = []
+        if self.config.get("encryption").get("widevine"):
+            widevine = self.config.get("drm_encryption").get("widevine")
+            args = [
+                '--enable_widevine_encryption',
+                '--key_server_url', widevine.key_server_url,
+                '--content_id', widevine.content_id,
+                '--signer', widevine.signer,
+                '--aes_signing_key', widevine.aes_signing_key,
+                '--aes_signing_iv', widevine.aes_signing_iv,
+            ]
+        elif self.config.get("encryption").get("fairplay"):
+            fairplay = self.config.get("drm_encryption").get("fairplay")
+            args = [
+                '--enable_raw_key_encryption',
+                '--keys',
+                'label=AUDIO:key=%s' % fairplay.key,
+                "--protection_systems", "Fairplay",
+                "--iv", fairplay.iv,
+                "--hls_key_uri", fairplay.uri
             ]
         return args

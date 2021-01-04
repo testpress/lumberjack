@@ -33,6 +33,8 @@ class JobSerializer(serializers.ModelSerializer):
             "start_time",
             "end_time",
             "submission_time",
+            "drm_encryption",
+            "output_cdn_url",
         ]
         extra_kwargs = {
             "id": {"read_only": True},

@@ -55,10 +55,10 @@ class TestVideoTranscoder(Mixin, TestCase):
         self.video_transcoder.output = self.output
         self.video_transcoder.job = self.output.job
 
-    @mock.patch("apps.jobs.runnables.OutputFileFactory")
+    @mock.patch("apps.jobs.runnables.ManifestGeneratorRunnable")
     @mock.patch("apps.jobs.runnables.LumberjackController")
     @mock.patch("apps.executors.transcoder.FFMpegTranscoder")
-    def test_runnable_should_run_ffmpeg_manager(self, mock_ffmpeg_manager, mock_controller, mock_ouptput_factory):
+    def test_runnable_should_run_ffmpeg_manager(self, mock_ffmpeg_manager, mock_controller, mock_manifest_generator):
         mock_ffmpeg_manager().check_status.return_value = Status.Finished
         mock_controller().check_status.return_value = Status.Finished
         self.video_transcoder.do_run()

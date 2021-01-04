@@ -94,6 +94,7 @@ class BaseProcessExecutor(BaseExecutor):
             stdout=stdout,
             stderr=stderr,
             shell=shell,
+            universal_newlines=True,
         )
 
     def check_status(self) -> Status:

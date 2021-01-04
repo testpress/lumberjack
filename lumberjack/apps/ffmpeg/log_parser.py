@@ -85,8 +85,7 @@ class LogParser(Observable):
     def generate_events_from_log(self):
         while True:
             events = []
-            log = self.process.stdout.readline().strip().decode("utf-8")
-            print("Log : ", log)
+            log = self.process.stdout.readline().strip()
             if self.is_stdout_finished(log):
                 return events
 

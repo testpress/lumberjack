@@ -7,11 +7,10 @@ from django.shortcuts import get_object_or_404
 from django.utils.timezone import now
 from django.db import transaction
 
-from apps.ffmpeg.outputs import OutputFileFactory
 from apps.jobs.controller import LumberjackController
 from apps.executors.base import Status
 from apps.jobs.models import Job, Output
-from apps.ffmpeg.utils import generate_file_name_from_format
+from .manifest_generator import DashManifestGenerator, HLSManifestGenerator
 
 
 class LumberjackRunnable(object):
@@ -61,9 +60,11 @@ class VideoTranscoderRunnable(LumberjackRunnable):
                         break
                     time.sleep(1)
             except RuntimeError as error:
+                print("RuntimeError")
                 self.handle_ffmpeg_exception(error)
                 controller.stop()
-            except SoftTimeLimitExceeded:
+            except SoftTimeLimitExceeded as error:
+                print("SoftTimeLimitExceeded : ", error)
                 self.update_output_as_cancelled()
                 controller.stop()
 
@@ -156,42 +157,10 @@ class VideoTranscoderRunnable(LumberjackRunnable):
 
 class ManifestGeneratorRunnable(LumberjackRunnable):
     def do_run(self, *args, **kwargs):
-        self.initialize()
-        self.generate_manifest_content()
-        self.upload()
-
-    def initialize(self):
         self.job = get_object_or_404(Job, id=self.job_id)
-        self.manifest_content = ""
-
-    def manifest_header(self):
-        return "#EXTM3U\n#EXT-X-VERSION:3\n"
-
-    def upload(self):
-        destination, file_name = os.path.split(self.job.output_url)
-        if not file_name:
-            file_name = generate_file_name_from_format(self.job.settings.get("format"))
-
-        storage = OutputFileFactory.create(destination + "/" + file_name)
-        storage.save_text(self.manifest_content)
-
-    def get_media_details(self):
-        media_details = []
-        for output in self.job.outputs.order_by("created"):
-            media_detail = {
-                "bandwidth": output.video_bitrate,
-                "resolution": output.resolution,
-                "name": f"{output.name}/video.m3u8",
-            }
-            media_details.append(media_detail)
-        return media_details
-
-    def generate_manifest_content(self):
-        content = self.manifest_header()
-        media_details = self.get_media_details()
-        for media_detail in media_details:
-            content += (
-                f"#EXT-X-STREAM-INF:BANDWIDTH={media_detail['bandwidth']},"
-                f"RESOLUTION={media_detail['resolution']}\n{media_detail['name']}\n\n"
-            )
-        self.manifest_content = content
+        dash_manifest_generator = DashManifestGenerator(self.job)
+        dash_manifest_generator.generate()
+        dash_manifest_generator.upload()
+        m3u8_manifest_generator = HLSManifestGenerator(self.job)
+        m3u8_manifest_generator.generate()
+        m3u8_manifest_generator.upload()
