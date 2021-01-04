@@ -2,8 +2,6 @@ import threading
 import abc
 import re
 
-from apps.ffmpeg.outputs import OutputFileFactory
-
 
 def convert_to_sec(time):
     h, m, s = time.split(":")
@@ -42,19 +40,6 @@ class ProgressObserver(Observer):
     @property
     def event_type(self):
         return FFmpegEvent.PROGRESS_EVENT
-
-
-class OutputFileObserver(Observer):
-    def __init__(self, url, directory):
-        self.output = OutputFileFactory.create(url)
-        self.directory = directory
-
-    def notify(self, is_transcode_completed):
-        self.output.save(self.directory, is_transcode_completed)
-
-    @property
-    def event_type(self):
-        return FFmpegEvent.OUTPUT_EVENT
 
 
 class Observable:

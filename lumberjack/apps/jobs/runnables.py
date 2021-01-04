@@ -1,11 +1,13 @@
+import time
 from celery.exceptions import SoftTimeLimitExceeded
 
 from django.shortcuts import get_object_or_404
 from django.utils.timezone import now
 from django.db import transaction
 
-from apps.ffmpeg.main import FFMpegManager, FFMpegException
 from apps.ffmpeg.outputs import OutputFileFactory
+from apps.jobs.controller import LumberjackController
+from apps.executors.base import Status
 from apps.jobs.models import Job, Output
 
 
@@ -42,16 +44,25 @@ class LumberjackRunnableException(Exception):
 class VideoTranscoderRunnable(LumberjackRunnable):
     def do_run(self, *args, **kwargs):
         self.initialize()
-        transcoder = FFMpegManager(self.output.settings, self.update_progress)
+        controller = LumberjackController()
 
-        try:
-            transcoder.run()
-            self.update_output_as_completed()
-        except FFMpegException as error:
-            self.handle_ffmpeg_exception(error)
-        except SoftTimeLimitExceeded:
-            self.update_output_as_cancelled()
-            transcoder.stop()
+        with controller.start(self.output.settings, self.update_progress):
+            try:
+                while True:
+                    status = controller.check_status()
+                    if status == Status.Finished:
+                        self.update_output_as_completed()
+                        break
+                    elif status == Status.Errored:
+                        self.handle_ffmpeg_exception(None)
+                        break
+                    time.sleep(1)
+            except RuntimeError as error:
+                self.handle_ffmpeg_exception(error)
+                controller.stop()
+            except SoftTimeLimitExceeded:
+                self.update_output_as_cancelled()
+                controller.stop()
 
         with transaction.atomic():
             if self.is_transcoding_completed():
