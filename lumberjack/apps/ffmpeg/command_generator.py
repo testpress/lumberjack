@@ -3,8 +3,8 @@ from collections import OrderedDict
 
 from django.conf import settings
 
-from apps.ffmpeg.utils import mkdir
-from .inputs import get_input_path, generate_file_name_from_format
+from apps.ffmpeg.utils import mkdir, generate_file_name_from_format
+from .inputs import get_input_path
 
 
 class CommandGenerator(object):
