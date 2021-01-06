@@ -76,5 +76,91 @@ class TestPackager(SimpleTestCase):
         self.assertTrue(os.path.isfile("tests/nodes/data/video_360p_init.mp4"))
         self.assertTrue(os.path.isfile("tests/nodes/data/video.mpd"))
 
+    def test_packager_command_should_return_command_to_package_output(self):
+        config = self.output_settings
+        config["format"] = "dash"
+        packager = ShakaPackager(config, "tests/nodes/data/")
+        expected_args = [
+            "packager",
+            "in=tests/ffmpeg/data/videoplayback.mp4,stream=video,init_segment=tests/nodes/data//video_360p_init.mp4,segment_template=tests/nodes/data//video_360p_$Number$.mp4",
+            "in=tests/ffmpeg/data/videoplayback.mp4,stream=audio,init_segment=tests/nodes/data//audio_init.mp4,segment_template=tests/nodes/data//audio_$Number$.mp4",
+            "--segment_duration",
+            "10",
+            "--mpd_output",
+            "tests/nodes/data/video.mpd",
+        ]
+
+        self.assertEqual(expected_args, packager.get_process_command())
+
+    def test_packager_process_command_should_return_widevine_encryption_args_for_dash(self):
+        config = self.output_settings
+        config.update(
+            {
+                "format": "dash",
+                "encryption": {
+                    "content_id": "abcd",
+                    "signer": "lumberjack",
+                    "aes_signing_key": "abcdef",
+                    "aes_signing_iv": "fedcba",
+                    "key_server_url": "https://google.com",
+                },
+            }
+        )
+        packager = ShakaPackager(config, "tests/nodes/data/")
+        expected_args = [
+            "packager",
+            "in=tests/ffmpeg/data/videoplayback.mp4,stream=video,init_segment=tests/nodes/data//video_360p_init.mp4,segment_template=tests/nodes/data//video_360p_$Number$.mp4",
+            "in=tests/ffmpeg/data/videoplayback.mp4,stream=audio,init_segment=tests/nodes/data//audio_init.mp4,segment_template=tests/nodes/data//audio_$Number$.mp4",
+            "--segment_duration",
+            "10",
+            "--mpd_output",
+            "tests/nodes/data/video.mpd",
+            "--enable_widevine_encryption",
+            "--key_server_url",
+            "https://google.com",
+            "--content_id",
+            "abcd",
+            "--signer",
+            "lumberjack",
+            "--aes_signing_key",
+            "abcdef",
+            "--aes_signing_iv",
+            "fedcba",
+        ]
+
+        self.assertEqual(expected_args, packager.get_process_command())
+
+    def test_packager_process_command_should_return_fairplay_encryption_args_for_hls(self):
+        config = self.output_settings
+        config.update(
+            {
+                "format": "hls",
+                "encryption": {"content_id": "abcd", "key": "wfwefwe", "iv": "fedcba", "uri": "https://google.com"},
+            }
+        )
+        packager = ShakaPackager(config, "tests/nodes/data/")
+        expected_args = [
+            "packager",
+            "in=tests/ffmpeg/data/videoplayback.mp4,stream=video,init_segment=tests/nodes/data//video_360p_init.mp4,segment_template=tests/nodes/data//video_360p_$Number$.mp4",
+            "in=tests/ffmpeg/data/videoplayback.mp4,stream=audio,init_segment=tests/nodes/data//audio_init.mp4,segment_template=tests/nodes/data//audio_$Number$.mp4",
+            "--segment_duration",
+            "10",
+            "--hls_playlist_type",
+            "VOD",
+            "--hls_master_playlist_output",
+            "tests/nodes/data/video.m3u8",
+            "--enable_raw_key_encryption",
+            "--keys",
+            "label=AUDIO:key=wfwefwe",
+            "--protection_systems",
+            "Fairplay",
+            "--iv",
+            "fedcba",
+            "--hls_key_uri",
+            "https://google.com",
+        ]
+
+        self.assertEqual(expected_args, packager.get_process_command())
+
     def tearDown(self) -> None:
         shutil.rmtree("tests/nodes/data/")

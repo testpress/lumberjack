@@ -106,24 +106,31 @@ class ShakaPackager(PolitelyWaitOnFinishExecutor):
 
     def _setup_encryption(self) -> List[str]:
         args = []
-        if self.config.get("encryption").get("widevine"):
-            widevine = self.config.get("drm_encryption").get("widevine")
+        encryption = self.config.get("encryption")
+        if self.config.get("format").lower() == "dash":
             args = [
-                '--enable_widevine_encryption',
-                '--key_server_url', widevine.key_server_url,
-                '--content_id', widevine.content_id,
-                '--signer', widevine.signer,
-                '--aes_signing_key', widevine.aes_signing_key,
-                '--aes_signing_iv', widevine.aes_signing_iv,
+                "--enable_widevine_encryption",
+                "--key_server_url",
+                encryption.get("key_server_url"),
+                "--content_id",
+                encryption.get("content_id"),
+                "--signer",
+                encryption.get("signer"),
+                "--aes_signing_key",
+                encryption.get("aes_signing_key"),
+                "--aes_signing_iv",
+                encryption.get("aes_signing_iv"),
             ]
-        elif self.config.get("encryption").get("fairplay"):
-            fairplay = self.config.get("drm_encryption").get("fairplay")
+        elif self.config.get("format").lower() == "hls":
             args = [
-                '--enable_raw_key_encryption',
-                '--keys',
-                'label=AUDIO:key=%s' % fairplay.key,
-                "--protection_systems", "Fairplay",
-                "--iv", fairplay.iv,
-                "--hls_key_uri", fairplay.uri
+                "--enable_raw_key_encryption",
+                "--keys",
+                "label=AUDIO:key=%s" % encryption.get("key"),
+                "--protection_systems",
+                "Fairplay",
+                "--iv",
+                encryption.get("iv"),
+                "--hls_key_uri",
+                encryption.get("uri"),
             ]
         return args
