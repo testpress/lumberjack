@@ -6,19 +6,14 @@ from typing import List
 from .base import PolitelyWaitOnFinishMixin
 from apps.ffmpeg.utils import mkdir
 
-INIT_SEGMENT = {
+INIT_SEGMENT_OUTPUT_TEMPLATE = {
     "audio": "{dir}/audio_init.{format}",
     "video": "{dir}/video_{resolution_name}_init.{format}",
 }
 
-MEDIA_SEGMENT = {
+MEDIA_SEGMENT_OUTPUT_TEMPLATE = {
     "audio": "{dir}/audio_$Number$.{format}",
     "video": "{dir}/video_{resolution_name}_$Number$.{format}",
-}
-
-SINGLE_SEGMENT = {
-    "audio": "{dir}/audio_{language}_{channels}c_{bitrate}.{format}",
-    "video": "{dir}/video_{resolution_name}_{bitrate}.{format}",
 }
 
 
@@ -30,7 +25,11 @@ class ShakaPackager(PolitelyWaitOnFinishMixin):
         self.config = config
         mkdir(self._output_dir)
 
-    def start(self):
+    def start_process(self):
+        args = self.get_packager_command()
+        return self._create_process(args, stderr=subprocess.STDOUT, stdout=None)
+
+    def get_packager_command(self):
         args = ["packager"]
         args += [self._setup_video_stream(self.config.get("output"))]
         args += [self._setup_audio_stream(self.config.get("output"))]
@@ -40,7 +39,7 @@ class ShakaPackager(PolitelyWaitOnFinishMixin):
         ]
 
         args += self._setup_manifest_format()
-        self._process = self._create_process(args, stderr=subprocess.STDOUT, stdout=None)
+        return args
 
     def _setup_video_stream(self, stream) -> str:
         stream_dict = {
@@ -49,10 +48,10 @@ class ShakaPackager(PolitelyWaitOnFinishMixin):
         }
 
         if stream.get("segment_per_file", True):
-            stream_dict["init_segment"] = INIT_SEGMENT["video"].format(
+            stream_dict["init_segment"] = INIT_SEGMENT_OUTPUT_TEMPLATE["video"].format(
                 dir=self._segment_dir, resolution_name=stream.get("name"), format="mp4"
             )
-            stream_dict["segment_template"] = MEDIA_SEGMENT["video"].format(
+            stream_dict["segment_template"] = MEDIA_SEGMENT_OUTPUT_TEMPLATE["video"].format(
                 dir=self._segment_dir, resolution_name=stream.get("name"), format="mp4"
             )
 
@@ -65,10 +64,10 @@ class ShakaPackager(PolitelyWaitOnFinishMixin):
         }
 
         if stream.get("segment_per_file", True):
-            stream_dict["init_segment"] = INIT_SEGMENT["audio"].format(
+            stream_dict["init_segment"] = INIT_SEGMENT_OUTPUT_TEMPLATE["audio"].format(
                 dir=self._segment_dir, resolution_name=stream.get("name"), format="mp4"
             )
-            stream_dict["segment_template"] = MEDIA_SEGMENT["audio"].format(
+            stream_dict["segment_template"] = MEDIA_SEGMENT_OUTPUT_TEMPLATE["audio"].format(
                 dir=self._segment_dir, resolution_name=stream.get("name"), format="mp4"
             )
 

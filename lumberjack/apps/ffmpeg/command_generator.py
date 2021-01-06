@@ -27,6 +27,9 @@ class CommandGenerator(object):
 
     @property
     def ffmpeg_binary(self):
+        # -y is to not prompt for output files that already exist. If we use
+        # named pipe in advance, it definitely will exist. A prompt
+        # would block ffmpeg to wait for user input.
         return "ffmpeg -hide_banner -y"
 
     @property
@@ -62,9 +65,21 @@ class CommandGenerator(object):
 
     @property
     def media_options(self):
-        if self.options.get("format").lower() in ["adaptive", "hls", "dash"]:
+        if self.should_generate_fragmented_mp4():
             return AdaptiveMediaOptions(self.options).all
+        elif self.options.get("format").lower() == "hls":
+            return HLSOptions(self.options).all
         return MediaOptions(self.options).all
+
+    def should_generate_fragmented_mp4(self):
+        # If Output format is HLS and DRM encryption is not necessary, then fragmented mp4 is not necessary
+        # as we are going to use FFMpeg to generate output
+        if self.options.get("format").lower() == "hls" and not self.options.get("drm_encryption", {}).get("fairplay", None):
+            return False
+
+        if self.options.get("format").lower() in ["adaptive", "dash", "hls"]:
+            return True
+        return False
 
 
 class MediaOptions(object):

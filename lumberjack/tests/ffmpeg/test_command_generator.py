@@ -36,11 +36,12 @@ class TestCommandGenerator(SimpleTestCase):
     @override_settings(TRANSCODED_VIDEOS_PATH="tests/ffmpeg/data")
     def test_command_generator_should_convert_options_to_ffmpeg_command(self):
         ffmpeg_command = (
-            "ffmpeg -hide_banner -y -reconnect 1 -reconnect_streamed 1 "
-            "-reconnect_delay_max 300 -i https://domain.com/path/videos/raw_video.mp4 "
-            "-c:a aac -b:a 48000 -c:v h264 -preset fast -s 360x640 "
-            "-b:v 500000 -movflags frag_keyframe+empty_moov -f mpegts "
-            "-max_muxing_queue_size 9999 tests/ffmpeg/data/1232/360p/video.m3u8"
+            "ffmpeg -hide_banner -y -reconnect 1 -reconnect_streamed 1 -reconnect_delay_max 300 "
+            "-i https://domain.com/path/videos/raw_video.mp4"
+            " -c:a aac -b:a 48000 -c:v h264 -preset fast -s 360x640 -b:v 500000 -format hls "
+            "-hls_list_size 0 -hls_time 10 -hls_segment_filename tests/ffmpeg/data/1232/360p/video_%d.ts "
+            "-hls_key_info_file tests/ffmpeg/data/1232/key/enc.keyinfo -max_muxing_queue_size 9999 "
+            "tests/ffmpeg/data/1232/360p/video.m3u8"
         )
 
         self.assertEqual(ffmpeg_command, self.command_generator.generate())

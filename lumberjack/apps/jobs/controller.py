@@ -27,23 +27,23 @@ from apps.executors.packager import ShakaPackager
 import threading
 
 
-class WriterThread(threading.Thread):
+class OneToManyPipeWriter(threading.Thread):
     def __init__(self, input_pipe):
         super().__init__()
         self.input_pipe = input_pipe
         self.output_pipes = []
 
-    def register_output_pipes(self, pipe):
+    def register_output_pipe(self, pipe):
         self.output_pipes.append(pipe)
 
     def run(self) -> None:
-        file_pointers = [open(pipe, "wb") for pipe in self.output_pipes]
+        output_file_pointers = [open(pipe, "wb") for pipe in self.output_pipes]
         while True:
             with open(self.input_pipe, "rb") as fifo:
                 for line in fifo:
-                    for fp in file_pointers:
+                    for fp in output_file_pointers:
                         fp.write(line)
-            for fp in file_pointers:
+            for fp in output_file_pointers:
                 fp.close()
 
 
@@ -52,7 +52,7 @@ class LumberjackController(object):
         global_temp_dir = tempfile.gettempdir()
 
         # Create a temp dir of our own, inside the global temp dir, and with a name that indicates who made it.
-        self._temp_dir = tempfile.mkdtemp(dir=global_temp_dir, prefix="shaka-live-", suffix="")
+        self._temp_dir = tempfile.mkdtemp(dir=global_temp_dir, prefix="lumberjack-", suffix="")
 
         self._executors: List[BaseExecutor] = []
 
@@ -63,7 +63,7 @@ class LumberjackController(object):
         self.stop()
 
     def _create_pipe(self):
-        """Create a uniquely-named named pipe in the node's temp directory.
+        """Create a uniquely-named named pipe in the controller's temp directory.
 
         Raises:
           RuntimeError: If the platform doesn't have mkfifo.
@@ -74,11 +74,7 @@ class LumberjackController(object):
         if not hasattr(os, "mkfifo"):
             raise RuntimeError("Platform not supported due to lack of mkfifo")
 
-        # Since the tempfile module creates actual files, use uuid to generate a
-        # filename, then call mkfifo to create the named pipe.
-        unique_name = str(uuid.uuid4())
-        path = os.path.join(self._temp_dir, unique_name)
-
+        path = os.path.join(self._temp_dir, str(uuid.uuid4()))
         readable_by_owner_only = 0o600  # Unix permission bits
         os.mkfifo(path, mode=readable_by_owner_only)
 
@@ -94,7 +90,7 @@ class LumberjackController(object):
         )
         if self.should_use_packager(config):
             config["output"]["pipe"] = self._create_pipe()
-            writer_thread = WriterThread(config["output"]["pipe"])
+            one_to_many_pipe_writer = OneToManyPipeWriter(input_pipe=config["output"]["pipe"])
             drm_encryption = config.get("drm_encryption")
 
             if config.get("format") in ["adaptive", "hls"]:
@@ -103,10 +99,10 @@ class LumberjackController(object):
                     hls_config["encryption"] = drm_encryption.get("fairplay")
                 hls_config["format"] = "hls"
                 hls_config["output"]["pipe"] = self._create_pipe()
-                writer_thread.register_output_pipes(hls_config["output"]["pipe"])
-                hls_output_path = local_path + "_hls"
+                one_to_many_pipe_writer.register_output_pipe(hls_config["output"]["pipe"])
+                hls_output_path = local_path + settings.HLS_OUTPUT_PATH_PREFIX
                 self._executors.append(ShakaPackager(hls_config, hls_output_path))
-                self._executors.append(CloudUploader(hls_output_path, config.get("output")["url"] + "_hls"))
+                self._executors.append(CloudUploader(hls_output_path, config.get("output")["url"] + settings.HLS_OUTPUT_PATH_PREFIX))
 
             if config.get("format") in ["adaptive", "dash"]:
                 dash_config = copy.deepcopy(config)
@@ -114,12 +110,12 @@ class LumberjackController(object):
                     dash_config["encryption"] = drm_encryption.get("widevine")
                 dash_config["format"] = "dash"
                 dash_config["output"]["pipe"] = self._create_pipe()
-                dash_output_path = local_path + "_dash"
-                writer_thread.register_output_pipes(dash_config["output"]["pipe"])
+                dash_output_path = local_path + settings.DASH_OUTPUT_PATH_PREFIX
+                one_to_many_pipe_writer.register_output_pipe(dash_config["output"]["pipe"])
                 self._executors.append(ShakaPackager(dash_config, dash_output_path))
-                self._executors.append(CloudUploader(dash_output_path, config.get("output")["url"] + "_dash"))
+                self._executors.append(CloudUploader(dash_output_path, config.get("output")["url"] + settings.DASH_OUTPUT_PATH_PREFIX))
 
-            writer_thread.start()
+            one_to_many_pipe_writer.start()
         else:
             self._executors.append(CloudUploader(local_path, config.get("output")["url"]))
 

@@ -10,7 +10,7 @@ from django.db import transaction
 from apps.jobs.controller import LumberjackController
 from apps.executors.base import Status
 from apps.jobs.models import Job, Output
-from .manifest_generator import DashManifestGenerator, HLSManifestGenerator
+from .manifest_generator import DashManifestGenerator, HLSManifestGenerator, HLSSimpleManifestGenerator
 
 
 class LumberjackRunnable(object):
@@ -60,11 +60,9 @@ class VideoTranscoderRunnable(LumberjackRunnable):
                         break
                     time.sleep(1)
             except RuntimeError as error:
-                print("RuntimeError")
                 self.handle_ffmpeg_exception(error)
                 controller.stop()
             except SoftTimeLimitExceeded as error:
-                print("SoftTimeLimitExceeded : ", error)
                 self.update_output_as_cancelled()
                 controller.stop()
 
@@ -158,9 +156,29 @@ class VideoTranscoderRunnable(LumberjackRunnable):
 class ManifestGeneratorRunnable(LumberjackRunnable):
     def do_run(self, *args, **kwargs):
         self.job = get_object_or_404(Job, id=self.job_id)
-        dash_manifest_generator = DashManifestGenerator(self.job)
-        dash_manifest_generator.generate()
-        dash_manifest_generator.upload()
-        m3u8_manifest_generator = HLSManifestGenerator(self.job)
-        m3u8_manifest_generator.generate()
-        m3u8_manifest_generator.upload()
+        self.generate_and_upload()
+
+    def generate_and_upload(self):
+        if self.is_packager_used():
+            if self.job.settings.get("format") in ["adaptive", "dash"]:
+                manifest_generator = DashManifestGenerator(self.job)
+                manifest_generator.generate()
+                manifest_generator.upload()
+            if self.job.settings.get("format") in ["adaptive", "hls"]:
+                manifest_generator = HLSManifestGenerator(self.job)
+                manifest_generator.generate()
+                manifest_generator.upload()
+        else:
+            manifest_generator = HLSSimpleManifestGenerator(self.job)
+            manifest_generator.generate()
+            manifest_generator.upload()
+
+    def is_packager_used(self):
+        config = self.job.settings
+        if config.get("format") == "hls" and not config.get("drm_encryption", {}).get("fairplay", None):
+            return False
+
+        if config.get("format") in ["adaptive", "dash", "hls"]:
+            return True
+
+        return False
