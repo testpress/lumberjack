@@ -75,6 +75,11 @@ class TestCommandGenerator(SimpleTestCase):
         output_path = "tests/ffmpeg/data/1232/360p/video.m3u8"
         self.assertEqual(output_path, self.command_generator.output_path)
 
+    @override_settings(TRANSCODED_VIDEOS_PATH="tests/ffmpeg/data")
+    def test_output_path_should_generate_filename_for_relative_path(self):
+        output_path = "tests/ffmpeg/data/1232/360p/"
+        self.assertEqual(output_path + "video.m3u8", self.command_generator.output_path)
+
 
 class TestHLSKeyInfoFile(SimpleTestCase):
     def setUp(self) -> None:

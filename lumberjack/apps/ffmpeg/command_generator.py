@@ -4,7 +4,7 @@ from collections import OrderedDict
 from django.conf import settings
 
 from apps.ffmpeg.utils import mkdir
-from .inputs import get_input_path
+from .inputs import get_input_path, generate_file_name_from_format
 
 
 class CommandGenerator(object):
@@ -51,7 +51,11 @@ class CommandGenerator(object):
 
     @property
     def output_path(self):
-        return "{}/{}/{}".format(self.local_path, self.options.get("output")["name"], self.options.get("file_name"))
+        if self.options.get("file_name"):
+            file_name = self.options.get("file_name")
+        else:
+            file_name = generate_file_name_from_format(self.options.get("format"))
+        return "{}/{}/{}".format(self.local_path, self.options.get("output")["name"], file_name)
 
     @property
     def media_options(self):
