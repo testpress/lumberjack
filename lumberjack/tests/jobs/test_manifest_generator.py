@@ -2,6 +2,7 @@ from django.test import TestCase
 
 from tests.jobs.mixins import Mixin
 from apps.jobs.manifest_generator import DashManifestGenerator, HLSManifestGeneratorForPackager
+from mpegdash.parser import MPEGDASHParser
 
 
 class TestDashManifestGenerator(TestCase, Mixin):
@@ -15,8 +16,11 @@ class TestDashManifestGenerator(TestCase, Mixin):
         manifest_generator = DashManifestGenerator(self.output.job)
 
         with open("tests/jobs/data/output.mpd", "r") as fp:
-            print(manifest_generator.generate())
-            self.assertEqual(fp.read(), manifest_generator.generate())
+            expected_mpd = MPEGDASHParser().parse(fp.read())
+            actual_mpd = MPEGDASHParser().parse(manifest_generator.generate())
+            self.assertEqual(
+                MPEGDASHParser.get_as_doc(expected_mpd).toxml(), MPEGDASHParser.get_as_doc(actual_mpd).toxml()
+            )
 
 
 class TestHLSManifestGenerator(TestCase, Mixin):
