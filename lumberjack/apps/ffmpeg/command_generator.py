@@ -51,10 +51,10 @@ class CommandGenerator(object):
 
     @property
     def output_path(self):
-        if self.options.get("file_name"):
-            file_name = self.options.get("file_name")
-        else:
+        file_name = self.options.get("file_name")
+        if not file_name:
             file_name = generate_file_name_from_format(self.options.get("format"))
+
         return "{}/{}/{}".format(self.local_path, self.options.get("output")["name"], file_name)
 
     @property
