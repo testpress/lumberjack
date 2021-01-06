@@ -125,7 +125,7 @@ class ShakaPackager(PolitelyWaitOnFinishExecutor):
             args = [
                 "--enable_raw_key_encryption",
                 "--keys",
-                "label=AUDIO:key=%s" % encryption.get("key"),
+                "label=:key=%s" % encryption.get("key"),
                 "--protection_systems",
                 "Fairplay",
                 "--iv",

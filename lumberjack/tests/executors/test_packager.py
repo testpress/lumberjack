@@ -151,7 +151,7 @@ class TestPackager(SimpleTestCase):
             "tests/nodes/data/video.m3u8",
             "--enable_raw_key_encryption",
             "--keys",
-            "label=AUDIO:key=wfwefwe",
+            "label=:key=wfwefwe",
             "--protection_systems",
             "Fairplay",
             "--iv",

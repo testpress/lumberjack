@@ -62,7 +62,7 @@ class VideoTranscoderRunnable(LumberjackRunnable):
             except RuntimeError as error:
                 self.handle_ffmpeg_exception(error)
                 controller.stop()
-            except SoftTimeLimitExceeded as error:
+            except SoftTimeLimitExceeded:
                 self.update_output_as_cancelled()
                 controller.stop()
 
