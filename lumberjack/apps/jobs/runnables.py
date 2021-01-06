@@ -166,7 +166,7 @@ class ManifestGeneratorRunnable(LumberjackRunnable):
 
     def upload(self):
         storage = OutputFileFactory.create(self.job.output_url)
-        storage.save_text(self.manifest_content, self.job.output_url)
+        storage.save_text(self.manifest_content)
 
     def get_media_details(self):
         media_details = []

@@ -25,7 +25,7 @@ class Storage(abc.ABC):
         pass
 
     @abc.abstractmethod
-    def save_text(self, content: str, path):
+    def save_text(self, content: str):
         pass
 
 
@@ -84,7 +84,7 @@ class S3(Storage):
                 absolute_file_path, s3_path.bucket_id, s3_path.key_id, ExtraArgs={"ACL": "public-read"}
             )
 
-    def save_text(self, content: str, path: str):
+    def save_text(self, content: str):
         s3_path = parse_uri(self.destination_url)
         file_obj = io.BytesIO(content.encode())
         self.client.upload_fileobj(file_obj, s3_path.bucket_id, s3_path.key_id, ExtraArgs={"ACL": "public-read"})
@@ -103,7 +103,7 @@ class LocalFileStorage(Storage):
         shutil.move(source_directory, self.destination_directory)
         self.is_being_moved = False
 
-    def save_text(self, content, path):
+    def save_text(self, content):
         content_as_bytes = io.BytesIO(content.encode()).read()
         with open(self.destination_directory, "wb") as fout:
             fout.write(content_as_bytes)
