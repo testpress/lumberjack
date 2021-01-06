@@ -15,7 +15,7 @@ from django.test import TestCase
 from apps.api.v1.jobs.serializers import JobSerializer
 from apps.executors.base import Status
 from apps.jobs.models import Job, Output
-from apps.jobs.runnables import VideoTranscoderRunnable, ManifestGeneratorRunnable
+from apps.jobs.runnables import VideoTranscoderRunnable, HLSManifestGeneratorForFFMpeg
 from apps.jobs.tasks import PostDataToWebhookTask
 from .mixins import Mixin
 
@@ -133,8 +133,7 @@ class TestManifestGenerator(Mixin, TestCase):
         self.initialize_manifest_generator()
 
     def initialize_manifest_generator(self):
-        self.manifest_generator = ManifestGeneratorRunnable(job_id=self.output.job.id)
-        self.manifest_generator.initialize()
+        self.manifest_generator = HLSManifestGeneratorForFFMpeg(job=self.output.job)
 
     @property
     def media_details(self):
@@ -148,18 +147,15 @@ class TestManifestGenerator(Mixin, TestCase):
         self.assertDictEqual(self.media_details[0], media_details[0])
 
     def test_generate_manifest_content_should_generate_hls_content(self):
-        self.manifest_generator.generate_manifest_content()
-
         expected_manifest_content = (
             "#EXTM3U\n#EXT-X-VERSION:3\n#EXT-X-STREAM-INF:BANDWIDTH=1500000,"
             "RESOLUTION=1280x720\n720p/video.m3u8\n\n"
         )
-        self.assertEqual(expected_manifest_content, self.manifest_generator.manifest_content)
+        self.assertEqual(expected_manifest_content, self.manifest_generator.generate())
 
     def test_upload(self):
         self.start_s3_mock()
-        self.manifest_generator.generate_manifest_content()
-        self.manifest_generator.upload()
+        self.manifest_generator.run()
 
         uploaded_content = self.get_file_from_s3(self.job.output_url).read().decode("utf-8")
         self.assertEqual(uploaded_content, self.manifest_generator.manifest_content)
@@ -169,8 +165,7 @@ class TestManifestGenerator(Mixin, TestCase):
         self.job.output_url = "s3://bucket/output_key/"
         self.job.save()
         self.initialize_manifest_generator()
-        self.manifest_generator.generate_manifest_content()
-        self.manifest_generator.upload()
+        self.manifest_generator.run()
 
         uploaded_content = self.get_file_from_s3(self.job.output_url + "video.m3u8").read().decode("utf-8")
         self.assertEqual(uploaded_content, self.manifest_generator.manifest_content)

@@ -1,4 +1,5 @@
 import abc
+import os
 
 import m3u8
 from mpegdash.nodes import BaseURL
@@ -8,6 +9,7 @@ from smart_open import parse_uri
 from django.conf import settings
 
 from apps.ffmpeg.outputs import OutputFileFactory
+from apps.ffmpeg.utils import generate_file_name_from_format
 
 
 class ManifestGenerator(object):
@@ -32,9 +34,12 @@ class ManifestGenerator(object):
         pass
 
     def upload(self):
-        upload_url = self.job.output_url + self.OUTPUT_FILE_NAME
-        storage = OutputFileFactory.create(upload_url)
-        storage.save_text(self.manifest_content, upload_url)
+        destination, file_name = os.path.split(self.job.output_url)
+        if not file_name:
+            file_name = generate_file_name_from_format(self.job.settings.get("format"))
+
+        storage = OutputFileFactory.create(destination + "/" + file_name)
+        storage.save_text(self.manifest_content)
 
 
 class DashManifestGenerator(ManifestGenerator):
@@ -48,10 +53,12 @@ class DashManifestGenerator(ManifestGenerator):
         initial_manifest_path = self.output_cdn_url + self.get_relative_output_path() + manifest_paths[0] + "video.mpd"
         initial_manifest = MPEGDASHParser.parse(initial_manifest_path)
         main_adaptation_set = self.get_adaptation_set(initial_manifest, "video")
+
         for representation in main_adaptation_set.representations:
             base_url = BaseURL()
             base_url.base_url_value = manifest_paths[0]
             representation.base_urls = base_url
+
         for representation in self.get_adaptation_set(initial_manifest, "audio").representations:
             base_url = BaseURL()
             base_url.base_url_value = manifest_paths[0]
@@ -76,7 +83,7 @@ class DashManifestGenerator(ManifestGenerator):
         return None
 
 
-class HLSManifestGenerator(ManifestGenerator):
+class HLSManifestGeneratorForPackager(ManifestGenerator):
     OUTPUT_FILE_NAME = "video.m3u8"
 
     def generate(self):
@@ -101,7 +108,7 @@ class HLSManifestGenerator(ManifestGenerator):
         return main_manifest.dumps()
 
 
-class HLSSimpleManifestGenerator(ManifestGenerator):
+class HLSManifestGeneratorForFFMpeg(ManifestGenerator):
     OUTPUT_FILE_NAME = "video.m3u8"
 
     @property

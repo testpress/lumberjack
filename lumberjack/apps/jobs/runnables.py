@@ -10,7 +10,7 @@ from django.db import transaction
 from apps.jobs.controller import LumberjackController
 from apps.executors.base import Status
 from apps.jobs.models import Job, Output
-from .manifest_generator import DashManifestGenerator, HLSManifestGenerator, HLSSimpleManifestGenerator
+from .manifest_generator import DashManifestGenerator, HLSManifestGeneratorForPackager, HLSManifestGeneratorForFFMpeg
 
 
 class LumberjackRunnable(object):
@@ -165,11 +165,11 @@ class ManifestGeneratorRunnable(LumberjackRunnable):
                 manifest_generator.generate()
                 manifest_generator.upload()
             if self.job.settings.get("format") in ["adaptive", "hls"]:
-                manifest_generator = HLSManifestGenerator(self.job)
+                manifest_generator = HLSManifestGeneratorForPackager(self.job)
                 manifest_generator.generate()
                 manifest_generator.upload()
         else:
-            manifest_generator = HLSSimpleManifestGenerator(self.job)
+            manifest_generator = HLSManifestGeneratorForFFMpeg(self.job)
             manifest_generator.generate()
             manifest_generator.upload()
 
