@@ -1,4 +1,6 @@
 import time
+import os
+
 from celery.exceptions import SoftTimeLimitExceeded
 
 from django.shortcuts import get_object_or_404
@@ -9,6 +11,7 @@ from apps.ffmpeg.outputs import OutputFileFactory
 from apps.jobs.controller import LumberjackController
 from apps.executors.base import Status
 from apps.jobs.models import Job, Output
+from apps.ffmpeg.utils import generate_file_name_from_format
 
 
 class LumberjackRunnable(object):
@@ -165,7 +168,11 @@ class ManifestGeneratorRunnable(LumberjackRunnable):
         return "#EXTM3U\n#EXT-X-VERSION:3\n"
 
     def upload(self):
-        storage = OutputFileFactory.create(self.job.output_url)
+        destination, file_name = os.path.split(self.job.output_url)
+        if not file_name:
+            file_name = generate_file_name_from_format(self.job.settings.get("format"))
+
+        storage = OutputFileFactory.create(destination + "/" + file_name)
         storage.save_text(self.manifest_content)
 
     def get_media_details(self):

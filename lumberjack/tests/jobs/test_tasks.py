@@ -128,6 +128,11 @@ class TestVideoTranscoder(Mixin, TestCase):
 
 class TestManifestGenerator(Mixin, TestCase):
     def setUp(self) -> None:
+        self.job.settings = {"format": "HLS"}
+        self.job.save()
+        self.initialize_manifest_generator()
+
+    def initialize_manifest_generator(self):
         self.manifest_generator = ManifestGeneratorRunnable(job_id=self.output.job.id)
         self.manifest_generator.initialize()
 
@@ -157,6 +162,17 @@ class TestManifestGenerator(Mixin, TestCase):
         self.manifest_generator.upload()
 
         uploaded_content = self.get_file_from_s3(self.job.output_url).read().decode("utf-8")
+        self.assertEqual(uploaded_content, self.manifest_generator.manifest_content)
+
+    def test_file_name_should_be_generated_for_relative_output_url(self):
+        self.start_s3_mock()
+        self.job.output_url = "s3://bucket/output_key/"
+        self.job.save()
+        self.initialize_manifest_generator()
+        self.manifest_generator.generate_manifest_content()
+        self.manifest_generator.upload()
+
+        uploaded_content = self.get_file_from_s3(self.job.output_url + "video.m3u8").read().decode("utf-8")
         self.assertEqual(uploaded_content, self.manifest_generator.manifest_content)
 
     def start_s3_mock(self):
