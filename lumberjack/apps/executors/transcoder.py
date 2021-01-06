@@ -21,10 +21,10 @@ from django.conf import settings
 from apps.ffmpeg.command_generator import CommandGenerator
 from apps.ffmpeg.log_parser import LogParser, ProgressObserver
 from apps.ffmpeg.utils import mkdir
-from .base import PolitelyWaitOnFinishMixin, BaseProcessExecutor
+from .base import PolitelyWaitOnFinishExecutor
 
 
-class FFMpegTranscoder(PolitelyWaitOnFinishMixin, BaseProcessExecutor):
+class FFMpegTranscoder(PolitelyWaitOnFinishExecutor):
     def __init__(self, config, progress_callback=None):
         super().__init__()
         self.config = config

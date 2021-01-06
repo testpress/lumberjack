@@ -176,11 +176,11 @@ class BaseThreadExecutor(BaseExecutor):
         return self._status
 
 
-class PolitelyWaitOnFinishMixin(BaseProcessExecutor):
+class PolitelyWaitOnFinishExecutor(BaseProcessExecutor):
     """
     A mixin that makes stop() wait for the subprocess if status is Finished.
     This is as opposed to the base class behavior, in which stop() forces
-    the subprocesses of a node to terminate.
+    the subprocesses of a executor to terminate.
     """
 
     def stop(self, status: Optional[Status]) -> None:
