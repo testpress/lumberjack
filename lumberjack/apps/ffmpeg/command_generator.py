@@ -60,7 +60,7 @@ class CommandGenerator(object):
         file_name = self.options.get("file_name")
         if not file_name:
             file_name = generate_file_name_from_format(self.options.get("format"))
-    
+
         return "{}/{}/{}".format(self.local_path, self.options.get("output")["name"], file_name)
 
     @property
