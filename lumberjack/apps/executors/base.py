@@ -43,6 +43,9 @@ class BaseExecutor(object):
 
 
 class BaseProcessExecutor(BaseExecutor):
+    STDOUT = subprocess.STDOUT
+    STDERR = subprocess.DEVNULL
+
     @abc.abstractmethod
     def __init__(self) -> None:
         self._process = None
@@ -53,17 +56,21 @@ class BaseProcessExecutor(BaseExecutor):
         self.stop(None)
 
     def start(self):
-        self._process = self.start_process()
+        self.pre_start()
+        self._process = self.create_process(self.get_process_command(), stdout=self.STDOUT, stderr=self.STDERR)
+        self.post_start()
 
-    @abc.abstractmethod
-    def start_process(self):
-        """Start the subprocess.
-        Should be overridden by the subclass to construct a command line, call
-        self._create_process.
-        """
+    def pre_start(self):
         pass
 
-    def _create_process(self, args, stdout=None, stderr=None, shell=False):
+    @abc.abstractmethod
+    def get_process_command(self):
+        raise NotImplementedError()
+
+    def post_start(self):
+        pass
+
+    def create_process(self, args, stdout=None, stderr=None, shell=False):
         """A central point to create subprocesses, so that we can debug the
         command-line arguments.
 

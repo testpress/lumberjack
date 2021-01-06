@@ -25,6 +25,9 @@ from .base import PolitelyWaitOnFinishExecutor
 
 
 class FFMpegTranscoder(PolitelyWaitOnFinishExecutor):
+    STDOUT = subprocess.PIPE
+    STDERR = subprocess.STDOUT
+
     def __init__(self, config, progress_callback=None):
         super().__init__()
         self.config = config
@@ -32,9 +35,13 @@ class FFMpegTranscoder(PolitelyWaitOnFinishExecutor):
         self.command = CommandGenerator(config).generate()
         self.event_source = None
 
-    def start(self):
+    def pre_start(self):
         self.create_output_folder()
-        self._process = self.start_transcoding()
+
+    def get_process_command(self):
+        return self.command
+
+    def post_start(self):
         self.event_source = LogParser(self._process)
         self.register_observers()
         self.event_source.start()
@@ -43,9 +50,6 @@ class FFMpegTranscoder(PolitelyWaitOnFinishExecutor):
         output = self.config.get("output")
         path = "{}/{}/{}".format(settings.TRANSCODED_VIDEOS_PATH, self.config.get("id"), output.get("name"))
         mkdir(path)
-
-    def start_transcoding(self):
-        return self._create_process(self.command, stdout=subprocess.PIPE, stderr=subprocess.STDOUT)
 
     def post_stop(self):
         if self.event_source:
