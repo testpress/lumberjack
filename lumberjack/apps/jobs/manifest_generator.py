@@ -55,14 +55,10 @@ class DashManifestGenerator(ManifestGenerator):
         main_adaptation_set = self.get_adaptation_set(initial_manifest, "video")
 
         for representation in main_adaptation_set.representations:
-            base_url = BaseURL()
-            base_url.base_url_value = manifest_paths[0]
-            representation.base_urls = base_url
+            self.add_base_url_to_representation(representation, manifest_paths[0])
 
         for representation in self.get_adaptation_set(initial_manifest, "audio").representations:
-            base_url = BaseURL()
-            base_url.base_url_value = manifest_paths[0]
-            representation.base_urls = base_url
+            self.add_base_url_to_representation(representation, manifest_paths[0])
 
         for path in manifest_paths[1:]:
             manifest_path = self.output_cdn_url + self.get_relative_output_path() + path + "video.mpd"
@@ -70,11 +66,14 @@ class DashManifestGenerator(ManifestGenerator):
             for adaptation_set in mpd.periods[0].adaptation_sets:
                 if adaptation_set.content_type == "video":
                     for representation in adaptation_set.representations:
-                        base_url = BaseURL()
-                        base_url.base_url_value = path
-                        representation.base_urls = base_url
+                        self.add_base_url_to_representation(representation, path)
                         main_adaptation_set.representations.append(representation)
         return MPEGDASHParser.get_as_doc(initial_manifest).toprettyxml()
+
+    def add_base_url_to_representation(self, representation, base_url_path):
+        base_url = BaseURL()
+        base_url.base_url_value = base_url_path
+        representation.base_urls = base_url
 
     def get_adaptation_set(self, mpd, content_type):
         for adaptation_set in mpd.periods[0].adaptation_sets:
@@ -91,21 +90,26 @@ class HLSManifestGeneratorForPackager(ManifestGenerator):
         for output in self.job.outputs.order_by("created"):
             manifest_paths.append(output.name + settings.HLS_OUTPUT_PATH_PREFIX + "/")
 
-        initial_manifest_path = self.output_cdn_url + self.get_relative_output_path() + manifest_paths[0] + "video.m3u8"
+        initial_manifest_path = (
+            self.output_cdn_url + self.get_relative_output_path() + manifest_paths[0] + "video.m3u8"
+        )
         main_manifest = m3u8.load(initial_manifest_path)
 
         for playlist in main_manifest.playlists:
-            playlist.media[0].uri = manifest_paths[0] + playlist.media[0].uri
-            playlist.uri = manifest_paths[0] + playlist.uri
+            self.add_base_bath_to_playlist(playlist, manifest_paths[0])
 
         for path in manifest_paths[1:]:
             manifest_path = self.output_cdn_url + self.get_relative_output_path() + path + "video.m3u8"
             manifest = m3u8.load(manifest_path)
             for playlist in manifest.playlists:
-                playlist.media[0].uri = path + playlist.media[0].uri
-                playlist.uri = path + playlist.uri
+                self.add_base_bath_to_playlist(playlist, path)
                 main_manifest.playlists.append(playlist)
         return main_manifest.dumps()
+
+    def add_base_bath_to_playlist(self, playlist, path):
+        for media in playlist.media:
+            media.uri = path + media.uri
+        playlist.uri = path + playlist.uri
 
 
 class HLSManifestGeneratorForFFMpeg(ManifestGenerator):
