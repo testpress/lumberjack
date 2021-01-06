@@ -3,7 +3,7 @@ import subprocess
 
 from typing import List
 
-from .base import PolitelyWaitOnFinishMixin
+from .base import PolitelyWaitOnFinishExecutor
 from apps.ffmpeg.utils import mkdir
 
 INIT_SEGMENT_OUTPUT_TEMPLATE = {
@@ -17,7 +17,10 @@ MEDIA_SEGMENT_OUTPUT_TEMPLATE = {
 }
 
 
-class ShakaPackager(PolitelyWaitOnFinishMixin):
+class ShakaPackager(PolitelyWaitOnFinishExecutor):
+    STDERR = subprocess.STDOUT
+    STDOUT = None
+
     def __init__(self, config, output_dir):
         super().__init__()
         self._output_dir = output_dir
@@ -25,11 +28,7 @@ class ShakaPackager(PolitelyWaitOnFinishMixin):
         self.config = config
         mkdir(self._output_dir)
 
-    def start_process(self):
-        args = self.get_packager_command()
-        return self._create_process(args, stderr=subprocess.STDOUT, stdout=None)
-
-    def get_packager_command(self):
+    def get_process_command(self):
         args = ["packager"]
         args += [self._setup_video_stream(self.config.get("output"))]
         args += [self._setup_audio_stream(self.config.get("output"))]
@@ -39,6 +38,9 @@ class ShakaPackager(PolitelyWaitOnFinishMixin):
         ]
 
         args += self._setup_manifest_format()
+
+        if self.config.get("encryption"):
+            args += self._setup_encryption()
         return args
 
     def _setup_video_stream(self, stream) -> str:
