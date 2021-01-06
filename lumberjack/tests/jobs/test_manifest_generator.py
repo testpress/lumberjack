@@ -15,6 +15,7 @@ class TestDashManifestGenerator(TestCase, Mixin):
         manifest_generator = DashManifestGenerator(self.output.job)
 
         with open("tests/jobs/data/output.mpd", "r") as fp:
+            print(manifest_generator.generate())
             self.assertEqual(fp.read(), manifest_generator.generate())
 
 
