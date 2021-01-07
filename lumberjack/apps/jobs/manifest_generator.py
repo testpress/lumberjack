@@ -4,21 +4,28 @@ import os
 import m3u8
 from mpegdash.nodes import BaseURL
 from mpegdash.parser import MPEGDASHParser
-from smart_open import parse_uri
+from smart_open import parse_uri, open
 
 from django.conf import settings
 
 from apps.ffmpeg.outputs import OutputFileFactory
-from apps.ffmpeg.utils import generate_file_name_from_format
+from apps.ffmpeg.input_options import InputOptionsFactory
 
 
 class ManifestGenerator(object):
     OUTPUT_FILE_NAME = None
 
     def __init__(self, job):
-        self.output_cdn_url = job.output_cdn_url
         self.job = job
         self.manifest_content = ""
+
+    def read_file(self, path):
+        with open(path, "r", transport_params=self.options.__dict__) as fp:
+            return fp.read()
+
+    @property
+    def options(self):
+        return InputOptionsFactory.get(self.job.output_url)
 
     def get_relative_output_path(self):
         uri = parse_uri(self.job.output_url)
@@ -35,10 +42,7 @@ class ManifestGenerator(object):
 
     def upload(self):
         destination, file_name = os.path.split(self.job.output_url)
-        if not file_name:
-            file_name = generate_file_name_from_format(self.job.settings.get("format"))
-
-        storage = OutputFileFactory.create(destination + "/" + file_name)
+        storage = OutputFileFactory.create(destination + "/" + self.OUTPUT_FILE_NAME)
         storage.save_text(self.manifest_content)
 
 
@@ -50,8 +54,8 @@ class DashManifestGenerator(ManifestGenerator):
         for output in self.job.outputs.order_by("created"):
             manifest_paths.append(output.name + settings.DASH_OUTPUT_PATH_PREFIX + "/")
 
-        initial_manifest_path = self.output_cdn_url + self.get_relative_output_path() + manifest_paths[0] + "video.mpd"
-        initial_manifest = MPEGDASHParser.parse(initial_manifest_path)
+        initial_manifest_path = self.job.output_url + manifest_paths[0] + "video.mpd"
+        initial_manifest = MPEGDASHParser.parse(self.read_file(initial_manifest_path))
         main_adaptation_set = self.get_adaptation_set(initial_manifest, "video")
 
         for representation in main_adaptation_set.representations:
@@ -61,8 +65,8 @@ class DashManifestGenerator(ManifestGenerator):
             self.add_base_url_to_representation(representation, manifest_paths[0])
 
         for path in manifest_paths[1:]:
-            manifest_path = self.output_cdn_url + self.get_relative_output_path() + path + "video.mpd"
-            mpd = MPEGDASHParser.parse(manifest_path)
+            manifest_path = self.job.output_url + path + "video.mpd"
+            mpd = MPEGDASHParser.parse(self.read_file(manifest_path))
             for adaptation_set in mpd.periods[0].adaptation_sets:
                 if adaptation_set.content_type == "video":
                     for representation in adaptation_set.representations:
@@ -90,17 +94,15 @@ class HLSManifestGeneratorForPackager(ManifestGenerator):
         for output in self.job.outputs.order_by("created"):
             manifest_paths.append(output.name + settings.HLS_OUTPUT_PATH_PREFIX + "/")
 
-        initial_manifest_path = (
-            self.output_cdn_url + self.get_relative_output_path() + manifest_paths[0] + "video.m3u8"
-        )
-        main_manifest = m3u8.load(initial_manifest_path)
+        initial_manifest_path = self.job.output_url + manifest_paths[0] + "video.m3u8"
+        main_manifest = m3u8.loads(self.read_file(initial_manifest_path))
 
         for playlist in main_manifest.playlists:
             self.add_base_bath_to_playlist(playlist, manifest_paths[0])
 
         for path in manifest_paths[1:]:
-            manifest_path = self.output_cdn_url + self.get_relative_output_path() + path + "video.m3u8"
-            manifest = m3u8.load(manifest_path)
+            manifest_path = self.job.output_url + path + "video.m3u8"
+            manifest = m3u8.loads(self.read_file(manifest_path))
             for playlist in manifest.playlists:
                 self.add_base_bath_to_playlist(playlist, path)
                 main_manifest.playlists.append(playlist)
