@@ -123,7 +123,6 @@ class ShakaPackager(PolitelyWaitOnFinishExecutor):
                 encryption.get("aes_signing_iv"),
             ]
         elif self.config.get("format").lower() == "hls":
-            print("Encryption : ", encryption)
             if encryption.get("iv"):
                 args = [
                     "--enable_raw_key_encryption",
