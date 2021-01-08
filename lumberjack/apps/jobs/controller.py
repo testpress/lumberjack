@@ -90,32 +90,8 @@ class LumberjackController(object):
         )
         if self.should_use_packager(config):
             config["output"]["pipe"] = self._create_pipe()
-            one_to_many_pipe_writer = OneToManyPipeWriter(input_pipe=config["output"]["pipe"])
-            drm_encryption = config.get("drm_encryption")
+            self.add_packagers(config, config["output"]["pipe"])
 
-            if config.get("format") in ["adaptive", "hls"]:
-                hls_config = copy.deepcopy(config)
-                if drm_encryption:
-                    hls_config["encryption"] = drm_encryption.get("fairplay")
-                hls_config["format"] = "hls"
-                hls_config["output"]["pipe"] = self._create_pipe()
-                one_to_many_pipe_writer.register_output_pipe(hls_config["output"]["pipe"])
-                hls_output_path = local_path + settings.HLS_OUTPUT_PATH_PREFIX
-                self._executors.append(ShakaPackager(hls_config, hls_output_path))
-                self._executors.append(CloudUploader(hls_output_path, config.get("output")["url"] + settings.HLS_OUTPUT_PATH_PREFIX))
-
-            if config.get("format") in ["adaptive", "dash"]:
-                dash_config = copy.deepcopy(config)
-                if drm_encryption:
-                    dash_config["encryption"] = drm_encryption.get("widevine")
-                dash_config["format"] = "dash"
-                dash_config["output"]["pipe"] = self._create_pipe()
-                dash_output_path = local_path + settings.DASH_OUTPUT_PATH_PREFIX
-                one_to_many_pipe_writer.register_output_pipe(dash_config["output"]["pipe"])
-                self._executors.append(ShakaPackager(dash_config, dash_output_path))
-                self._executors.append(CloudUploader(dash_output_path, config.get("output")["url"] + settings.DASH_OUTPUT_PATH_PREFIX))
-
-            one_to_many_pipe_writer.start()
         else:
             self._executors.append(CloudUploader(local_path, config.get("output")["url"]))
 
@@ -133,6 +109,41 @@ class LumberjackController(object):
             return True
 
         return False
+
+    def add_packagers(self, config, ffmpeg_output_pipe):
+        local_path = "{}/{}/{}".format(
+            settings.TRANSCODED_VIDEOS_PATH, config.get("id"), config.get("output").get("name")
+        )
+        one_to_many_pipe_writer = OneToManyPipeWriter(input_pipe=ffmpeg_output_pipe)
+        drm_encryption = config.get("drm_encryption")
+
+        if config.get("format") in ["adaptive", "hls"]:
+            hls_config = copy.deepcopy(config)
+            if drm_encryption:
+                hls_config["encryption"] = drm_encryption.get("fairplay")
+            hls_config["format"] = "hls"
+            hls_config["output"]["pipe"] = self._create_pipe()
+            one_to_many_pipe_writer.register_output_pipe(hls_config["output"]["pipe"])
+            hls_output_path = local_path + settings.HLS_OUTPUT_PATH_PREFIX
+            self._executors.append(ShakaPackager(hls_config, hls_output_path))
+            self._executors.append(
+                CloudUploader(hls_output_path, config.get("output")["url"] + settings.HLS_OUTPUT_PATH_PREFIX)
+            )
+
+        if config.get("format") in ["adaptive", "dash"]:
+            dash_config = copy.deepcopy(config)
+            if drm_encryption:
+                dash_config["encryption"] = drm_encryption.get("widevine")
+            dash_config["format"] = "dash"
+            dash_config["output"]["pipe"] = self._create_pipe()
+            dash_output_path = local_path + settings.DASH_OUTPUT_PATH_PREFIX
+            one_to_many_pipe_writer.register_output_pipe(dash_config["output"]["pipe"])
+            self._executors.append(ShakaPackager(dash_config, dash_output_path))
+            self._executors.append(
+                CloudUploader(dash_output_path, config.get("output")["url"] + settings.DASH_OUTPUT_PATH_PREFIX)
+            )
+
+        one_to_many_pipe_writer.start()
 
     def check_status(self) -> Status:
         """Checks the status of all the nodes.

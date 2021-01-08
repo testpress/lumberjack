@@ -41,6 +41,7 @@ class ShakaPackager(PolitelyWaitOnFinishExecutor):
 
         if self.config.get("encryption"):
             args += self._setup_encryption()
+        print("Args : ", args)
         return args
 
     def _setup_video_stream(self, stream) -> str:
@@ -107,7 +108,7 @@ class ShakaPackager(PolitelyWaitOnFinishExecutor):
     def _setup_encryption(self) -> List[str]:
         args = []
         encryption = self.config.get("encryption")
-        if self.config.get("format").lower() == "dash":
+        if self.config.get("format").lower() == "dash" and encryption.get("content_id"):
             args = [
                 "--enable_widevine_encryption",
                 "--key_server_url",
@@ -122,15 +123,27 @@ class ShakaPackager(PolitelyWaitOnFinishExecutor):
                 encryption.get("aes_signing_iv"),
             ]
         elif self.config.get("format").lower() == "hls":
-            args = [
-                "--enable_raw_key_encryption",
-                "--keys",
-                "label=:key=%s" % encryption.get("key"),
-                "--protection_systems",
-                "Fairplay",
-                "--iv",
-                encryption.get("iv"),
-                "--hls_key_uri",
-                encryption.get("uri"),
-            ]
+            print("Encryption : ", encryption)
+            if encryption.get("iv"):
+                args = [
+                    "--enable_raw_key_encryption",
+                    "--keys",
+                    "label=:key=%s" % encryption.get("key"),
+                    "--protection_systems",
+                    "Fairplay",
+                    "--iv",
+                    encryption.get("iv"),
+                    "--hls_key_uri",
+                    encryption.get("uri"),
+                ]
+            else:
+                args = [
+                    "--enable_fixed_key_encryption",
+                    "--key",
+                    encryption.get("key"),
+                    "--key_id",
+                    encryption.get("key"),
+                    "--hls_key_uri",
+                    encryption.get("url"),
+                ]
         return args
