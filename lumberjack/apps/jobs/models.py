@@ -96,6 +96,9 @@ class Job(TimeStampedModel, JobNotifierMixin):
         if self.encryption_key:
             settings.update({"encryption": {"key": self.encryption_key, "url": self.key_url}})
 
+        if self.drm_encryption:
+            settings.update({"drm_encryption": self.drm_encryption})
+
         self.settings = settings
 
     def start(self, sync=False, queue="transcoding"):

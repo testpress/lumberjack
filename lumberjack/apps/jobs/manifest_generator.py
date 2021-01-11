@@ -59,19 +59,26 @@ class DashManifestGenerator(ManifestGenerator):
         main_adaptation_set = self.get_adaptation_set(initial_manifest, "video")
 
         for representation in main_adaptation_set.representations:
+            representation.width = main_adaptation_set.width
+            representation.height = main_adaptation_set.height
             self.add_base_url_to_representation(representation, manifest_paths[0])
 
         for representation in self.get_adaptation_set(initial_manifest, "audio").representations:
             self.add_base_url_to_representation(representation, manifest_paths[0])
 
-        for path in manifest_paths[1:]:
+        for i, path in enumerate(manifest_paths[1:]):
             manifest_path = self.job.output_url + path + "video.mpd"
             mpd = MPEGDASHParser.parse(self.read_file(manifest_path))
             for adaptation_set in mpd.periods[0].adaptation_sets:
                 if adaptation_set.content_type == "video":
                     for representation in adaptation_set.representations:
+                        representation.width = adaptation_set.width
+                        representation.height = adaptation_set.height
                         self.add_base_url_to_representation(representation, path)
                         main_adaptation_set.representations.append(representation)
+
+        for i, representation in enumerate(main_adaptation_set.representations):
+            representation.id = i
         return MPEGDASHParser.get_as_doc(initial_manifest).toprettyxml()
 
     def add_base_url_to_representation(self, representation, base_url_path):

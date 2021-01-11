@@ -2,7 +2,7 @@
 <MPD xmlns="urn:mpeg:dash:schema:mpd:2011" type="static" profiles="urn:mpeg:dash:profile:isoff-live:2011" mediaPresentationDuration="PT428.26666259765625S" minBufferTime="PT2S">
 	<Period id="0">
 		<AdaptationSet width="426" height="240" frameRate="90000/3000" id="0" contentType="video" par="16:9" segmentAlignment="true">
-			<Representation sar="640:639" mimeType="video/mp4" codecs="avc1.640015" id="0" bandwidth="416888">
+			<Representation width="426" height="240" sar="640:639" mimeType="video/mp4" codecs="avc1.640015" id="0" bandwidth="416888">
 				<BaseURL>240p_dash/</BaseURL>
 				<SegmentTemplate timescale="90000" presentationTimeOffset="132000" startNumber="1" media="video_240p_$Number$.mp4" initialization="video_240p_init.mp4">
 					<SegmentTimeline>
@@ -51,7 +51,7 @@
 					</SegmentTimeline>
 				</SegmentTemplate>
 			</Representation>
-			<Representation sar="1:1" mimeType="video/mp4" codecs="avc1.64001e" id="0" bandwidth="834437">
+			<Representation width="640" height="360" sar="1:1" mimeType="video/mp4" codecs="avc1.64001e" id="1" bandwidth="834437">
 				<BaseURL>720p_dash/</BaseURL>
 				<SegmentTemplate timescale="90000" presentationTimeOffset="132000" startNumber="1" media="video_360p_$Number$.mp4" initialization="video_360p_init.mp4">
 					<SegmentTimeline>
