@@ -18,13 +18,13 @@ class TestDashManifestGenerator(TestCase, Mixin):
         self.job.output_url = "s3://bucket_url/tests/jobs/data/"
         self.job.save()
 
-    @mock.patch("apps.jobs.manifest_generator.ManifestGenerator.read_file", side_effect=mock_read_file)
+    @mock.patch("apps.jobs.manifest_generator.ManifestMerger.read_file", side_effect=mock_read_file)
     def test_dash_manifest_generator_should_combine_multiple_manifest_and(self, mock_open):
         manifest_generator = DashManifestGenerator(self.output.job)
 
         with open("tests/jobs/data/output.mpd", "r") as fp:
             expected_mpd = MPEGDASHParser().parse(fp.read())
-            actual_mpd = MPEGDASHParser().parse(manifest_generator.generate())
+            actual_mpd = MPEGDASHParser().parse(manifest_generator.merge())
             self.assertEqual(
                 MPEGDASHParser.get_as_doc(expected_mpd).toxml(), MPEGDASHParser.get_as_doc(actual_mpd).toxml()
             )
@@ -36,9 +36,9 @@ class TestHLSManifestGenerator(TestCase, Mixin):
         self.job.output_url = "s3://bucket_url/tests/jobs/data/"
         self.job.save()
 
-    @mock.patch("apps.jobs.manifest_generator.ManifestGenerator.read_file", side_effect=mock_read_file)
+    @mock.patch("apps.jobs.manifest_generator.ManifestMerger.read_file", side_effect=mock_read_file)
     def test_dash_manifest_generator_should_combine_multiple_manifest_and(self, mock_read_file):
         manifest_generator = HLSManifestGeneratorForPackager(self.output.job)
 
         with open("tests/jobs/data/output.m3u8", "r") as fp:
-            self.assertEqual(fp.read(), manifest_generator.generate())
+            self.assertEqual(fp.read(), manifest_generator.merge())

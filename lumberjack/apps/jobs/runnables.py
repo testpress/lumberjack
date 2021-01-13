@@ -10,6 +10,7 @@ from django.db import transaction
 from apps.jobs.controller import LumberjackController
 from apps.executors.base import Status
 from apps.jobs.models import Job, Output
+from apps.presets.models import JobTemplate
 from .manifest_generator import DashManifestGenerator, HLSManifestGeneratorForPackager, HLSManifestGeneratorForFFMpeg
 
 
@@ -160,25 +161,25 @@ class ManifestGeneratorRunnable(LumberjackRunnable):
 
     def generate_and_upload(self):
         if self.is_packager_used():
-            if self.job.settings.get("format") in ["adaptive", "dash"]:
+            if self.job.settings.get("format") in [JobTemplate.BOTH_HLS_AND_DASH, JobTemplate.DASH]:
                 manifest_generator = DashManifestGenerator(self.job)
-                manifest_generator.generate()
+                manifest_generator.merge()
                 manifest_generator.upload()
-            if self.job.settings.get("format") in ["adaptive", "hls"]:
+            if self.job.settings.get("format") in [JobTemplate.BOTH_HLS_AND_DASH, JobTemplate.HLS]:
                 manifest_generator = HLSManifestGeneratorForPackager(self.job)
-                manifest_generator.generate()
+                manifest_generator.merge()
                 manifest_generator.upload()
         else:
             manifest_generator = HLSManifestGeneratorForFFMpeg(self.job)
-            manifest_generator.generate()
+            manifest_generator.merge()
             manifest_generator.upload()
 
     def is_packager_used(self):
         config = self.job.settings
-        if config.get("format") == "hls" and not config.get("drm_encryption", {}).get("fairplay", None):
+        if config.get("format") == JobTemplate.HLS and not config.get("drm_encryption", {}).get("fairplay", None):
             return False
 
-        if config.get("format") in ["adaptive", "dash", "hls"]:
+        if config.get("format") in [JobTemplate.BOTH_HLS_AND_DASH, JobTemplate.DASH, JobTemplate.HLS]:
             return True
 
         return False

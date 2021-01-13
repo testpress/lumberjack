@@ -6,6 +6,7 @@ from django.test import SimpleTestCase
 from apps.executors.packager import ShakaPackager
 from apps.executors.base import Status
 from apps.ffmpeg.utils import mkdir
+from apps.presets.models import JobTemplate
 
 
 class TestPackager(SimpleTestCase):
@@ -17,7 +18,7 @@ class TestPackager(SimpleTestCase):
             "segmentLength": 10,
             "destination": "file:///abc",
             "file_name": "video.m3u8",
-            "format": "adaptive",
+            "format": JobTemplate.BOTH_HLS_AND_DASH,
             "output": {
                 "input": "tests/ffmpeg/data/videoplayback.mp4",
                 "name": "360p",

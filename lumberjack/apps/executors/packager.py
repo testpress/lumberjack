@@ -5,6 +5,7 @@ from typing import List
 
 from .base import PolitelyWaitOnFinishExecutor
 from apps.ffmpeg.utils import mkdir
+from apps.presets.models import JobTemplate
 
 INIT_SEGMENT_OUTPUT_TEMPLATE = {
     "audio": "{dir}/audio_init.{format}",
@@ -41,7 +42,6 @@ class ShakaPackager(PolitelyWaitOnFinishExecutor):
 
         if self.config.get("encryption"):
             args += self._setup_encryption()
-        print("Args : ", args)
         return args
 
     def _setup_video_stream(self, stream) -> str:
@@ -78,7 +78,7 @@ class ShakaPackager(PolitelyWaitOnFinishExecutor):
 
     def _setup_manifest_format(self) -> List[str]:
         args: List[str] = []
-        if self.config.get("format") in ["dash", "adaptive"]:
+        if self.config.get("format") in [JobTemplate.DASH, JobTemplate.BOTH_HLS_AND_DASH]:
             if self.config.get("playlist_type") == "vod":
                 args += [
                     "--generate_static_live_mpd",
@@ -88,7 +88,7 @@ class ShakaPackager(PolitelyWaitOnFinishExecutor):
                 os.path.join(self._output_dir, self.config.get("dash_output", "video.mpd")),
             ]
 
-        if self.config.get("format") in ["hls", "adaptive"]:
+        if self.config.get("format") in [JobTemplate.HLS, JobTemplate.BOTH_HLS_AND_DASH]:
             if self.config.get("playlist_type") == "live":
                 args += [
                     "--hls_playlist_type",
@@ -108,7 +108,7 @@ class ShakaPackager(PolitelyWaitOnFinishExecutor):
     def _setup_encryption(self) -> List[str]:
         args = []
         encryption = self.config.get("encryption")
-        if self.config.get("format").lower() == "dash" and encryption.get("content_id"):
+        if self.config.get("format").lower() == JobTemplate.DASH and encryption.get("content_id"):
             args = [
                 "--enable_widevine_encryption",
                 "--key_server_url",
@@ -122,7 +122,7 @@ class ShakaPackager(PolitelyWaitOnFinishExecutor):
                 "--aes_signing_iv",
                 encryption.get("aes_signing_iv"),
             ]
-        elif self.config.get("format").lower() == "hls":
+        elif self.config.get("format").lower() == JobTemplate.HLS:
             if encryption.get("iv"):
                 args = [
                     "--enable_raw_key_encryption",

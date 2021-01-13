@@ -17,6 +17,7 @@ import tempfile
 import uuid
 import copy
 from typing import List
+import threading
 
 from django.conf import settings
 
@@ -24,7 +25,7 @@ from apps.executors.base import Status, BaseExecutor
 from apps.executors.cloud import CloudUploader
 from apps.executors.transcoder import FFMpegTranscoder
 from apps.executors.packager import ShakaPackager
-import threading
+from apps.presets.models import JobTemplate
 
 
 class OneToManyPipeWriter(threading.Thread):
@@ -88,7 +89,7 @@ class LumberjackController(object):
         local_path = "{}/{}/{}".format(
             settings.TRANSCODED_VIDEOS_PATH, config.get("id"), config.get("output").get("name")
         )
-        if self.should_use_packager(config):
+        if self.is_drm_needed(config):
             config["output"]["pipe"] = self._create_pipe()
             self.add_packagers(config, config["output"]["pipe"])
 
@@ -100,12 +101,12 @@ class LumberjackController(object):
             executor.start()
         return self
 
-    def should_use_packager(self, config):
+    def is_drm_needed(self, config):
         # If only hls output without fairplay is necessary then FFMpeg itself can be used
-        if config.get("format") == "hls" and not config.get("drm_encryption", {}).get("fairplay", None):
+        if config.get("format") == JobTemplate.HLS and not config.get("drm_encryption", {}).get("fairplay", None):
             return False
 
-        if config.get("format") in ["adaptive", "dash", "hls"]:
+        if config.get("format") in [JobTemplate.BOTH_HLS_AND_DASH, JobTemplate.DASH, JobTemplate.HLS]:
             return True
 
         return False
@@ -115,14 +116,9 @@ class LumberjackController(object):
             settings.TRANSCODED_VIDEOS_PATH, config.get("id"), config.get("output").get("name")
         )
         one_to_many_pipe_writer = OneToManyPipeWriter(input_pipe=ffmpeg_output_pipe)
-        drm_encryption = config.get("drm_encryption")
 
-        if config.get("format") in ["adaptive", "hls"]:
-            hls_config = copy.deepcopy(config)
-            if drm_encryption:
-                hls_config["encryption"] = drm_encryption.get("fairplay")
-            hls_config["format"] = "hls"
-            hls_config["output"]["pipe"] = self._create_pipe()
+        if config.get("format") in [JobTemplate.BOTH_HLS_AND_DASH, JobTemplate.HLS]:
+            hls_config = self.prepare_hls_config(config)
             one_to_many_pipe_writer.register_output_pipe(hls_config["output"]["pipe"])
             hls_output_path = local_path + settings.HLS_OUTPUT_PATH_PREFIX
             self._executors.append(ShakaPackager(hls_config, hls_output_path))
@@ -130,12 +126,8 @@ class LumberjackController(object):
                 CloudUploader(hls_output_path, config.get("output")["url"] + settings.HLS_OUTPUT_PATH_PREFIX)
             )
 
-        if config.get("format") in ["adaptive", "dash"]:
-            dash_config = copy.deepcopy(config)
-            if drm_encryption:
-                dash_config["encryption"] = drm_encryption.get("widevine")
-            dash_config["format"] = "dash"
-            dash_config["output"]["pipe"] = self._create_pipe()
+        if config.get("format") in [JobTemplate.BOTH_HLS_AND_DASH, JobTemplate.DASH]:
+            dash_config = self.prepare_dash_config(config)
             dash_output_path = local_path + settings.DASH_OUTPUT_PATH_PREFIX
             one_to_many_pipe_writer.register_output_pipe(dash_config["output"]["pipe"])
             self._executors.append(ShakaPackager(dash_config, dash_output_path))
@@ -144,6 +136,22 @@ class LumberjackController(object):
             )
 
         one_to_many_pipe_writer.start()
+
+    def prepare_hls_config(self, config):
+        hls_config = copy.deepcopy(config)
+        if hls_config.get("drm_encryption"):
+            hls_config["encryption"] = hls_config.get("drm_encryption").get("fairplay")
+        hls_config["format"] = "hls"
+        hls_config["output"]["pipe"] = self._create_pipe()
+        return hls_config
+
+    def prepare_dash_config(self, config):
+        dash_config = copy.deepcopy(config)
+        if dash_config.get("drm_encryption"):
+            dash_config["encryption"] = dash_config.get("drm_encryption").get("widevine")
+        dash_config["format"] = "dash"
+        dash_config["output"]["pipe"] = self._create_pipe()
+        return dash_config
 
     def check_status(self) -> Status:
         """Checks the status of all the nodes.

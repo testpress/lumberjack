@@ -81,7 +81,9 @@ class TestVideoTranscoder(Mixin, TestCase):
         mock_celery_control.revoke.assert_called_with(None, terminate=True, signal="SIGUSR1")
         self.assertEqual(self.video_transcoder.job.status, Job.ERROR)
 
-    @mock.patch("apps.jobs.runnables.LumberjackController", **{"return_value.run.side_effect": SoftTimeLimitExceeded()})
+    @mock.patch(
+        "apps.jobs.runnables.LumberjackController", **{"return_value.run.side_effect": SoftTimeLimitExceeded()}
+    )
     @mock.patch("apps.jobs.models.app.GroupResult")
     def test_task_should_stop_ffmpeg_process_in_case_of_soft_time_limit_exception(
         self, mock_group_result, mock_controller
@@ -151,7 +153,7 @@ class TestManifestGenerator(Mixin, TestCase):
             "#EXTM3U\n#EXT-X-VERSION:3\n#EXT-X-STREAM-INF:BANDWIDTH=1500000,"
             "RESOLUTION=1280x720\n720p/video.m3u8\n\n"
         )
-        self.assertEqual(expected_manifest_content, self.manifest_generator.generate())
+        self.assertEqual(expected_manifest_content, self.manifest_generator.merge())
 
     def test_upload(self):
         self.start_s3_mock()

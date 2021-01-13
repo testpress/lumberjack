@@ -4,6 +4,7 @@ from collections import OrderedDict
 from django.conf import settings
 
 from apps.ffmpeg.utils import mkdir, generate_file_name_from_format
+from apps.presets.models import JobTemplate
 from .inputs import get_input_path
 
 
@@ -74,12 +75,12 @@ class CommandGenerator(object):
     def should_generate_fragmented_mp4(self):
         # If Output format is HLS and DRM encryption is not necessary, then fragmented mp4 is not necessary
         # as we are going to use FFMpeg to generate output
-        if self.options.get("format").lower() == "hls" and not self.options.get("drm_encryption", {}).get(
+        if self.options.get("format").lower() == JobTemplate.HLS and not self.options.get("drm_encryption", {}).get(
             "fairplay", None
         ):
             return False
 
-        if self.options.get("format").lower() in ["adaptive", "dash", "hls"]:
+        if self.options.get("format").lower() in [JobTemplate.BOTH_HLS_AND_DASH, JobTemplate.DASH, JobTemplate.HLS]:
             return True
         return False
 

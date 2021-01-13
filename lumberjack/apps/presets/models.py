@@ -10,6 +10,10 @@ from apps.jobs.models import AbstractOutput
 
 class JobTemplate(TimeStampedModel):
     PLAYLIST_TYPE = (("vod", "VOD"), ("live", "Live"))
+    HLS = "hls"
+    DASH = "dash"
+    BOTH_HLS_AND_DASH = "hls_and_dash"
+    OUTPUT_FORMATS = ((HLS, "HLS"), (DASH, "Dash"), (BOTH_HLS_AND_DASH, "HLS And Dash"))
 
     id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
     name = models.CharField("Name", max_length=255, unique=True)
@@ -25,7 +29,7 @@ class JobTemplate(TimeStampedModel):
         choices=PLAYLIST_TYPE,
         max_length=100,
     )
-    format = models.CharField("Output Format", max_length=255)
+    format = models.CharField("Output Format", max_length=255, default="h264", choices=OUTPUT_FORMATS)
 
     class Meta:
         ordering = ("-created",)
