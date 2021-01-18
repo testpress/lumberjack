@@ -116,7 +116,7 @@
 			</Representation>
 		</AdaptationSet>
 		<AdaptationSet id="1" contentType="audio" segmentAlignment="true">
-			<Representation audioSamplingRate="44100" mimeType="audio/mp4" codecs="mp4a.40.2" id="1" bandwidth="68155">
+			<Representation audioSamplingRate="44100" mimeType="audio/mp4" codecs="mp4a.40.2" id="0" bandwidth="68155">
 				<AudioChannelConfiguration schemeIdUri="urn:mpeg:dash:23003:3:audio_channel_configuration:2011" value="2"/>
 				<BaseURL>240p_dash/</BaseURL>
 				<SegmentTemplate timescale="90000" presentationTimeOffset="132000" startNumber="1" media="audio_$Number$.mp4" initialization="audio_init.mp4">
@@ -164,6 +164,78 @@
 						<S t="36001257" d="900681"/>
 						<S t="36901958" d="898592"/>
 						<S t="37800571" d="848441"/>
+					</SegmentTimeline>
+				</SegmentTemplate>
+			</Representation>
+			<Representation audioSamplingRate="44100" mimeType="audio/mp4" codecs="mp4a.40.2" id="1" bandwidth="76339">
+				<AudioChannelConfiguration schemeIdUri="urn:mpeg:dash:23003:3:audio_channel_configuration:2011" value="2"/>
+				<BaseURL>720p_dash/</BaseURL>
+				<SegmentTemplate timescale="90000" presentationTimeOffset="132000" startNumber="1" media="audio_$Number$.mp4" initialization="audio_init.mp4">
+					<SegmentTimeline>
+						<S t="129910" d="771124"/>
+						<S t="901045" d="900690"/>
+						<S t="1801746" d="898600"/>
+						<S t="2700359" d="900690"/>
+						<S t="3601060" d="900690"/>
+						<S t="4501762" d="898602"/>
+						<S t="5400375" d="900690"/>
+						<S t="6301077" d="900690"/>
+						<S t="7201779" d="898601"/>
+						<S t="8100391" d="900690"/>
+						<S t="9001093" d="900690"/>
+						<S t="9901795" d="898601"/>
+						<S t="10800408" d="900691"/>
+						<S t="11701110" d="900690"/>
+						<S t="12601811" d="898600"/>
+						<S t="13500424" d="900690"/>
+						<S t="14401126" d="900691"/>
+						<S t="15301828" d="898601"/>
+						<S t="16200441" d="900690"/>
+						<S t="17101143" d="900690"/>
+						<S t="18001845" d="898600"/>
+						<S t="18900456" d="900691"/>
+						<S t="19801159" d="900690"/>
+						<S t="20701860" d="898601"/>
+						<S t="21600473" d="900690"/>
+						<S t="22501175" d="900690"/>
+						<S t="23401877" d="898601"/>
+						<S t="24300489" d="900691"/>
+						<S t="25201192" d="900690"/>
+						<S t="26101893" d="898601"/>
+						<S t="27000506" d="900690"/>
+						<S t="27901208" d="900690"/>
+						<S t="28801909" d="898601"/>
+						<S t="29700521" d="900691"/>
+						<S t="30601224" d="900690"/>
+						<S t="31501926" d="898599"/>
+						<S t="32400538" d="900691"/>
+						<S t="33301241" d="900690"/>
+						<S t="34201942" d="898601"/>
+						<S t="35100555" d="900690"/>
+						<S t="36001256" d="900691"/>
+						<S t="36901959" d="898600"/>
+						<S t="37800570" d="900691"/>
+						<S t="38701273" d="900690"/>
+						<S t="39601975" d="898601"/>
+						<S t="40500587" d="900690"/>
+						<S t="41401289" d="900690"/>
+						<S t="42301991" d="898601"/>
+						<S t="43200603" d="900691"/>
+						<S t="44101306" d="900690"/>
+						<S t="45002007" d="898601"/>
+						<S t="45900620" d="900690"/>
+						<S t="46801322" d="900691"/>
+						<S t="47702024" d="898600"/>
+						<S t="48600636" d="900691"/>
+						<S t="49501338" d="900690"/>
+						<S t="50402040" d="898601"/>
+						<S t="51300652" d="900691"/>
+						<S t="52201355" d="900690"/>
+						<S t="53102057" d="898600"/>
+						<S t="54000669" d="900690"/>
+						<S t="54901371" d="900691"/>
+						<S t="55802073" d="898600"/>
+						<S t="56700685" d="543340"/>
 					</SegmentTimeline>
 				</SegmentTemplate>
 			</Representation>

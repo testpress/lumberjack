@@ -5,7 +5,7 @@ import m3u8
 from mpegdash.nodes import BaseURL
 from mpegdash.parser import MPEGDASHParser
 from smart_open import parse_uri, open
-from m3u8.model import PlaylistList
+from m3u8.model import PlaylistList, MediaList
 
 from django.conf import settings
 
@@ -52,11 +52,27 @@ class DashManifestGenerator(ManifestMerger):
 
     def merge(self):
         manifest_paths = self.get_relative_manifest_paths()
-        initial_manifest = self.modify_base_manifest(manifest_paths[0])
-        main_adaptation_set = self.get_adaptation_set(initial_manifest, "video")
-        main_adaptation_set.representations = self.add_base_url_to_representations(manifest_paths)
-        self.change_id_in_representations(main_adaptation_set)
+        initial_manifest = self.clone_manifest(manifest_paths[0])
+        tracks_dict = self.get_tracks(manifest_paths)
+        self.add_tracks_to_manifest(tracks_dict, initial_manifest)
         return MPEGDASHParser.get_as_doc(initial_manifest).toprettyxml()
+
+    def get_tracks(self, paths):
+        video_representations = []
+        audio_representations = []
+        for i, path in enumerate(paths):
+            manifest_path = self.job.output_url + path + self.OUTPUT_FILE_NAME
+            mpd = MPEGDASHParser.parse(self.read_file(manifest_path))
+            modified_representations = self.modify_video_representations(mpd, path)
+            modified_audio_representations = self.modify_audio_representations(mpd, path)
+            video_representations.extend(modified_representations)
+            audio_representations.extend(modified_audio_representations)
+
+        for i, representation in enumerate(audio_representations):
+            representation.id = i
+        for i, representation in enumerate(video_representations):
+            representation.id = i
+        return {"audio": audio_representations, "video": video_representations}
 
     def get_relative_manifest_paths(self):
         manifest_paths = []
@@ -75,34 +91,30 @@ class DashManifestGenerator(ManifestMerger):
                 return adaptation_set
         return None
 
-    def change_id_in_representations(self, adaptation_set):
-        for i, representation in enumerate(adaptation_set.representations):
-            representation.id = i
-
-    def modify_representations(self, adaptation_set, output_path):
+    def modify_video_representations(self, mpd, output_path):
+        adaptation_set = self.get_adaptation_set(mpd, "video")
         for representation in adaptation_set.representations:
             representation.width = adaptation_set.width
             representation.height = adaptation_set.height
             self.add_base_url_to_representation(representation, output_path)
         return adaptation_set.representations
 
-    def modify_base_manifest(self, manifest_path):
+    def modify_audio_representations(self, mpd, output_path):
+        adaptation_set = self.get_adaptation_set(mpd, "audio")
+        for representation in adaptation_set.representations:
+            self.add_base_url_to_representation(representation, output_path)
+        return adaptation_set.representations
+
+    def clone_manifest(self, manifest_path):
         initial_manifest_path = self.job.output_url + manifest_path + self.OUTPUT_FILE_NAME
-        initial_manifest = MPEGDASHParser.parse(self.read_file(initial_manifest_path))
+        return MPEGDASHParser.parse(self.read_file(initial_manifest_path))
 
-        for representation in self.get_adaptation_set(initial_manifest, "audio").representations:
-            self.add_base_url_to_representation(representation, manifest_path)
-        return initial_manifest
-
-    def add_base_url_to_representations(self, manifest_paths):
-        all_representations = []
-        for i, path in enumerate(manifest_paths):
-            manifest_path = self.job.output_url + path + self.OUTPUT_FILE_NAME
-            mpd = MPEGDASHParser.parse(self.read_file(manifest_path))
-            adaptation_set = self.get_adaptation_set(mpd, "video")
-            modified_representations = self.modify_representations(adaptation_set, path)
-            all_representations.extend(modified_representations)
-        return all_representations
+    def add_tracks_to_manifest(self, tracks_dict, initial_manifest):
+        for adaptation_set in initial_manifest.periods[0].adaptation_sets:
+            if adaptation_set.content_type == "audio":
+                adaptation_set.representations = tracks_dict["audio"]
+            elif adaptation_set.content_type == "video":
+                adaptation_set.representations = tracks_dict["video"]
 
 
 class HLSManifestGeneratorForPackager(ManifestMerger):
@@ -110,34 +122,29 @@ class HLSManifestGeneratorForPackager(ManifestMerger):
 
     def merge(self):
         manifest_paths = self.get_relative_manifest_paths()
-        main_manifest = self.modify_base_manifest(manifest_paths[0])
-        main_manifest.playlists = self.add_base_path_to_playlists(manifest_paths)
-        return main_manifest.dumps()
+        initial_manifest = self.clone_manifest(manifest_paths[0])
+        self.add_base_path_to_playlists(manifest_paths, initial_manifest)
+        return initial_manifest.dumps()
 
-    def add_base_bath_to_playlist(self, playlist, path):
-        for media in playlist.media:
-            media.uri = path + media.uri
-        playlist.uri = path + playlist.uri
+    def clone_manifest(self, manifest_path):
+        initial_manifest_path = self.job.output_url + manifest_path + self.OUTPUT_FILE_NAME
+        return m3u8.loads(self.read_file(initial_manifest_path))
 
-    def modify_base_manifest(self, path):
-        initial_manifest_path = self.job.output_url + path + self.OUTPUT_FILE_NAME
-        main_manifest = m3u8.loads(self.read_file(initial_manifest_path))
-        self.modify_media_uri(main_manifest, path)
-        return main_manifest
-
-    def modify_media_uri(self, manifest, path):
-        for media in manifest.media:
-            media.uri = path + media.uri
-
-    def add_base_path_to_playlists(self, paths):
+    def add_base_path_to_playlists(self, paths, initial_manifest):
+        medias = MediaList()
         playlists = PlaylistList()
-        for path in paths:
+        for i, path in enumerate(paths):
             manifest_path = self.job.output_url + path + self.OUTPUT_FILE_NAME
             manifest = m3u8.loads(self.read_file(manifest_path))
             for playlist in manifest.playlists:
-                self.add_base_bath_to_playlist(playlist, path)
+                playlist.uri = path + playlist.uri
                 playlists.append(playlist)
-        return playlists
+            for media in manifest.media:
+                media.uri = path + media.uri
+                media.group_id += "_{}".format(str(i))
+                medias.append(media)
+        initial_manifest.media = medias
+        initial_manifest.playlists = playlists
 
     def get_relative_manifest_paths(self):
         manifest_paths = []
