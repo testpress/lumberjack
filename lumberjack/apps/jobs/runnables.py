@@ -67,6 +67,10 @@ class VideoTranscoderRunnable(LumberjackRunnable):
                 self.update_output_as_cancelled()
                 controller.stop()
 
+        while True:
+            if controller.is_completed():
+                break
+
         with transaction.atomic():
             if self.is_transcoding_completed():
                 self.complete_job()

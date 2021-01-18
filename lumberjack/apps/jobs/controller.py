@@ -165,6 +165,9 @@ class LumberjackController(object):
         value = max(node.check_status().value for node in self._executors)
         return Status(value)
 
+    def is_completed(self):
+        return all([executor.check_status() != Status.Running for executor in self._executors])
+
     def stop(self) -> None:
         """Stop all nodes."""
         status = self.check_status()
