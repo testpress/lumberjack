@@ -26,6 +26,8 @@ from apps.executors.cloud import CloudUploader
 from apps.executors.transcoder import FFMpegTranscoder
 from apps.executors.packager import ShakaPackager
 from apps.presets.models import JobTemplate
+from apps.ffmpeg.command_generator import HLSKeyInfoFile
+from apps.ffmpeg.utils import mkdir
 
 
 class OneToManyPipeWriter(threading.Thread):
@@ -120,11 +122,28 @@ class LumberjackController(object):
         if config.get("format") in [JobTemplate.BOTH_HLS_AND_DASH, JobTemplate.HLS]:
             hls_config = self.prepare_hls_config(config)
             one_to_many_pipe_writer.register_output_pipe(hls_config["output"]["pipe"])
-            hls_output_path = local_path + settings.HLS_OUTPUT_PATH_PREFIX
-            self._executors.append(ShakaPackager(hls_config, hls_output_path))
-            self._executors.append(
-                CloudUploader(hls_output_path, config.get("output")["url"] + settings.HLS_OUTPUT_PATH_PREFIX)
-            )
+            if not hls_config.get("drm_encryption", {}).get("fairplay"):
+                hls_config["output"]["path"] = local_path
+                input_pipe = hls_config["output"]["pipe"]
+                hls_config["output"]["pipe"] = None
+                mkdir(hls_config["output"]["path"])
+                hls_key_info_file = HLSKeyInfoFile(
+                    hls_config["encryption"]["key"],
+                    hls_config["encryption"]["url"],
+                    "{}/{}/key".format(settings.TRANSCODED_VIDEOS_PATH, hls_config.get("id")),
+                )
+                hls_key_info_file.create()
+                command = "ffmpeg -y -i " + input_pipe + " -format hls -hls_list_size 0 -hls_time 10"
+                command += " -hls_key_info_file " + str(hls_key_info_file)
+                command += " " + hls_config["output"]["path"] + "/video.m3u8"
+                self._executors.append(FFMpegTranscoder(hls_config, command=command))
+                self._executors.append(CloudUploader(local_path, config.get("output")["url"]))
+            else:
+                hls_output_path = local_path + settings.HLS_OUTPUT_PATH_PREFIX
+                self._executors.append(ShakaPackager(hls_config, hls_output_path))
+                self._executors.append(
+                    CloudUploader(hls_output_path, config.get("output")["url"] + settings.HLS_OUTPUT_PATH_PREFIX)
+                )
 
         if config.get("format") in [JobTemplate.BOTH_HLS_AND_DASH, JobTemplate.DASH]:
             dash_config = self.prepare_dash_config(config)
