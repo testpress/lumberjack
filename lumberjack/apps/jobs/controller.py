@@ -89,7 +89,7 @@ class LumberjackController(object):
         local_path = "{}/{}/{}".format(
             settings.TRANSCODED_VIDEOS_PATH, config.get("id"), config.get("output").get("name")
         )
-        if self.is_drm_needed(config):
+        if self.is_packaging_needed(config):
             config["output"]["pipe"] = self._create_pipe()
             self.add_packagers(config, config["output"]["pipe"])
 
@@ -101,7 +101,7 @@ class LumberjackController(object):
             executor.start()
         return self
 
-    def is_drm_needed(self, config):
+    def is_packaging_needed(self, config):
         # If only hls output without fairplay is necessary then FFMpeg itself can be used
         if config.get("format") == JobTemplate.HLS and not config.get("drm_encryption", {}).get("fairplay", None):
             return False
