@@ -4,6 +4,7 @@ from collections import OrderedDict
 from django.conf import settings
 
 from apps.ffmpeg.utils import mkdir, generate_file_name_from_format
+from apps.presets.models import JobTemplate
 from .inputs import get_input_path
 
 
@@ -27,7 +28,10 @@ class CommandGenerator(object):
 
     @property
     def ffmpeg_binary(self):
-        return "ffmpeg -hide_banner"
+        # -y is to not prompt for overwriting output files that already exist. If we use
+        # named pipe in advance, it definitely will exist. A prompt
+        # would block ffmpeg to wait for user input.
+        return "ffmpeg -hide_banner -y"
 
     @property
     def input_argument(self):
@@ -51,6 +55,9 @@ class CommandGenerator(object):
 
     @property
     def output_path(self):
+        if self.options.get("output", {}).get("pipe"):
+            return self.options.get("output").get("pipe")
+
         file_name = self.options.get("file_name")
         if not file_name:
             file_name = generate_file_name_from_format(self.options.get("format"))
@@ -59,9 +66,23 @@ class CommandGenerator(object):
 
     @property
     def media_options(self):
-        if self.options.get("format").lower() == "hls":
+        if self.should_generate_fragmented_mp4():
+            return AdaptiveMediaOptions(self.options).all
+        elif self.options.get("format").lower() == "hls":
             return HLSOptions(self.options).all
         return MediaOptions(self.options).all
+
+    def should_generate_fragmented_mp4(self):
+        # If Output format is HLS and DRM encryption is not necessary, then fragmented mp4 is not necessary
+        # as we are going to use FFMpeg to generate output
+        if self.options.get("format").lower() == JobTemplate.HLS and not self.options.get("drm_encryption", {}).get(
+            "fairplay", None
+        ):
+            return False
+
+        if self.options.get("format").lower() in [JobTemplate.BOTH_HLS_AND_DASH, JobTemplate.DASH, JobTemplate.HLS]:
+            return True
+        return False
 
 
 class MediaOptions(object):
@@ -100,6 +121,14 @@ class MediaOptions(object):
         args = {}
         args.update(self.audio_options())
         args.update(self.video_options())
+        return args
+
+
+class AdaptiveMediaOptions(MediaOptions):
+    @property
+    def all(self):
+        args = super().all
+        args.update({"movflags": "frag_keyframe+empty_moov", "f": "mpegts"})
         return args
 
 

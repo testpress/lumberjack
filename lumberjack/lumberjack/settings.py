@@ -159,3 +159,6 @@ if os.environ.get("SENTRY_URL", None):
         integrations=[DjangoIntegration(), CeleryIntegration(), RedisIntegration()],
         send_default_pii=True,
     )
+
+HLS_OUTPUT_PATH_PREFIX = "_hls"
+DASH_OUTPUT_PATH_PREFIX = "_dash"

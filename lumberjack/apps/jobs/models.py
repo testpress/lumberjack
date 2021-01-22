@@ -45,6 +45,7 @@ class Job(TimeStampedModel, JobNotifierMixin):
     meta_data = models.JSONField("Meta Data", null=True)
     start_time = models.DateTimeField(_("start"), null=True, blank=True)
     end_time = models.DateTimeField(_("end"), null=True, blank=True)
+    drm_encryption = models.JSONField("DRM Encryption", null=True)
 
     class Meta:
         ordering = ("-created",)
@@ -94,6 +95,9 @@ class Job(TimeStampedModel, JobNotifierMixin):
 
         if self.encryption_key:
             settings.update({"encryption": {"key": self.encryption_key, "url": self.key_url}})
+
+        if self.drm_encryption:
+            settings.update({"drm_encryption": self.drm_encryption})
 
         self.settings = settings
 

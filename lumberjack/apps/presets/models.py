@@ -9,13 +9,27 @@ from apps.jobs.models import AbstractOutput
 
 
 class JobTemplate(TimeStampedModel):
+    PLAYLIST_TYPE = (("vod", "VOD"), ("live", "Live"))
+    HLS = "hls"
+    DASH = "dash"
+    BOTH_HLS_AND_DASH = "hls_and_dash"
+    OUTPUT_FORMATS = ((HLS, "HLS"), (DASH, "Dash"), (BOTH_HLS_AND_DASH, "HLS And Dash"))
+
     id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
     name = models.CharField("Name", max_length=255, unique=True)
     slug = models.SlugField("Slug", max_length=255, unique=True, blank=True, db_index=True)
     settings = models.JSONField("Settings", null=True, blank=True)
     destination = models.CharField("Destination", max_length=1024)
     segment_length = models.PositiveSmallIntegerField("HLS Segments length", blank=True, null=True, default=10)
-    format = models.CharField("Output Format", max_length=255)
+    playlist_type = models.CharField(
+        "VOD/Live",
+        help_text="Applicable only for adaptive streaming",
+        null=True,
+        blank=True,
+        choices=PLAYLIST_TYPE,
+        max_length=100,
+    )
+    format = models.CharField("Output Format", max_length=255, default="h264", choices=OUTPUT_FORMATS)
 
     class Meta:
         ordering = ("-created",)
@@ -24,7 +38,12 @@ class JobTemplate(TimeStampedModel):
         return self.name
 
     def populate_settings(self):
-        settings = {"name": self.name, "segmentLength": self.segment_length, "format": self.format}
+        settings = {
+            "name": self.name,
+            "segmentLength": self.segment_length,
+            "format": self.format,
+            "playlist_type": self.playlist_type,
+        }
         output_presets = []
         for output_preset in self.output_presets.all():
             output_presets.append(output_preset.settings)

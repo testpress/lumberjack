@@ -16,6 +16,13 @@ def get_input_path(path):
     return path
 
 
+def generate_file_name_from_format(format):
+    if format.lower() == "mp4":
+        return "video.mp4"
+    elif format.lower() == "hls":
+        return "video.m3u8"
+
+
 class InputPath(abc.ABC):
     def __init__(self, source):
         self.source = source
