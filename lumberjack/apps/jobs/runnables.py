@@ -166,17 +166,11 @@ class ManifestGeneratorRunnable(LumberjackRunnable):
     def generate_and_upload(self):
         if self.is_packager_used():
             if self.job.settings.get("format") in [JobTemplate.BOTH_HLS_AND_DASH, JobTemplate.DASH]:
-                manifest_generator = DashManifestGenerator(self.job)
-                manifest_generator.merge()
-                manifest_generator.upload()
+                DashManifestGenerator(self.job).run()
             if self.job.settings.get("format") in [JobTemplate.BOTH_HLS_AND_DASH, JobTemplate.HLS]:
-                manifest_generator = HLSManifestGeneratorForPackager(self.job)
-                manifest_generator.merge()
-                manifest_generator.upload()
+                HLSManifestGeneratorForPackager(self.job).run()
         else:
-            manifest_generator = HLSManifestGeneratorForFFMpeg(self.job)
-            manifest_generator.merge()
-            manifest_generator.upload()
+            HLSManifestGeneratorForFFMpeg(self.job).run()
 
     def is_packager_used(self):
         config = self.job.settings
