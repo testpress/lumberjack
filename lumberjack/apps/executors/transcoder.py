@@ -28,11 +28,11 @@ class FFMpegTranscoder(PolitelyWaitOnFinishExecutor):
     STDOUT = subprocess.PIPE
     STDERR = subprocess.STDOUT
 
-    def __init__(self, config, progress_callback=None):
+    def __init__(self, config, progress_callback=None, command=None):
         super().__init__()
         self.config = config
         self.progress_observer = progress_callback
-        self.command = CommandGenerator(config).generate()
+        self.command = command or CommandGenerator(config).generate()
         self.event_source = None
 
     def pre_start(self):
