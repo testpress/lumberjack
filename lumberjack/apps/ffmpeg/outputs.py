@@ -87,7 +87,12 @@ class S3(Storage):
     def save_text(self, content: str):
         s3_path = parse_uri(self.destination_url)
         file_obj = io.BytesIO(content.encode())
-        self.client.upload_fileobj(file_obj, s3_path.bucket_id, s3_path.key_id, ExtraArgs={"ACL": "public-read"})
+        self.client.upload_fileobj(
+            file_obj,
+            s3_path.bucket_id,
+            s3_path.key_id,
+            ExtraArgs={"ACL": "public-read", "StorageClass": "STANDARD_IA"},
+        )
 
 
 class LocalFileStorage(Storage):
