@@ -150,6 +150,7 @@ CELERY_TIMEZONE = "Asia/Kolkata"
 CELERY_TASK_ROUTES = {
     "apps.jobs.tasks.VideoTranscoderTask": {"queue": "transcoding"},
 }
+CELERYD_PREFETCH_MULTIPLIER = 1
 
 REST_FRAMEWORK = {"DEFAULT_PAGINATION_CLASS": "rest_framework.pagination.LimitOffsetPagination", "PAGE_SIZE": 100}
 
